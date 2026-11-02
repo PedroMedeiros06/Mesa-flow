@@ -1,0 +1,29 @@
+/* Tokens provisórios da etapa 1. O sistema visual completo entra na etapa 4. */
+:root {
+  --brand: #f27a1a;
+  --brand-ink: #b8530a;
+  --highlight: #ffc21a;
+  --ink: #1c1714;
+  --paper: #f7f6f4;
+  --muted: #6b625c;
+  --success: #1f8a4c;
+  --danger: #c4321f;
+  color-scheme: light;
+  font-family: "Manrope", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--paper);
+}
+
+h1 {
+  font-family: "Bricolage Grotesque", "Manrope", sans-serif;
+}

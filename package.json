@@ -1,0 +1,26 @@
+{
+  "name": "mesaflow",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:shared": "npm run build -w @mesaflow/shared",
+    "build": "npm run build:shared && npm run build -w @mesaflow/backend && npm run build -w @mesaflow/frontend",
+    "typecheck": "npm run build:shared && npm run typecheck -ws",
+    "test": "npm run build:shared && npm run test -ws",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "dev:backend": "npm run build:shared && npm run dev -w @mesaflow/backend",
+    "dev:frontend": "npm run build:shared && npm run dev -w @mesaflow/frontend"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0"
+  }
+}
