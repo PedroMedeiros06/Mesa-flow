@@ -125,7 +125,7 @@ Regras transversais:
 | 4 | **Identidade visual**: direção de design (cores, tipografia, layout), protótipos das telas principais para você aprovar, depois componentes base e casca do painel | você aprova os protótipos; navegação completa no desktop e no celular (390 px) |
 | 5 | **Cardápio** (categorias, produtos, adicionais, até 4 fotos por produto). Descontos e preço promocional ficam para a etapa 7 (cálculo do pedido); "sem cebola" vem com a ficha técnica na etapa 6 | CRUD testado de ponta a ponta |
 | 6 | **Estoque** (ingredientes, ficha técnica) | baixa e estorno exatos em teste |
-| 7 | **Pedidos**: balcão + cozinha | 20 pedidos simultâneos deixam o estoque exato |
+| 7 | **Pedidos**: balcão + cozinha + lista do dia. Inclui preço promocional no produto e desconto no pedido (permissão `orders.discount`). Sem estoque, o pedido é recusado | 20 pedidos simultâneos deixam o estoque exato |
 | 8 | **Vitrine** pública | pedido do celular aparece na cozinha |
 | 9 | **Comandas e mesas** | dois garçons na mesma mesa mantêm o total certo |
 | 10 | **Dashboard** | números batem com consulta SQL de referência |

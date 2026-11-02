@@ -214,7 +214,15 @@ export function Cardapio() {
                           )}
                         </span>
                       </span>
-                      <span className="prod-preco num">{formatMoney(p.priceCents)}</span>
+                      <span className="prod-preco num">
+                        {p.promoPriceCents !== null ? (
+                          <>
+                            <s className="suave">{formatMoney(p.priceCents)}</s> {formatMoney(p.promoPriceCents)}
+                          </>
+                        ) : (
+                          formatMoney(p.priceCents)
+                        )}
+                      </span>
                     </button>
                     <span className="prod-ordem">
                       <button

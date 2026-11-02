@@ -54,6 +54,7 @@ export function EditorProduto({
   const [nome, setNome] = useState(inicial?.name ?? "");
   const [descricao, setDescricao] = useState(inicial?.description ?? "");
   const [preco, setPreco] = useState(inicial ? moneyToInput(inicial.priceCents) : "");
+  const [promo, setPromo] = useState(inicial?.promoPriceCents != null ? moneyToInput(inicial.promoPriceCents) : "");
   const [ativo, setAtivo] = useState(inicial?.active ?? true);
   const [adicionais, setAdicionais] = useState<AdicionalForm[]>(
     (inicial?.addons ?? []).map((a) => ({ chave: novaChave(), nome: a.name, preco: moneyToInput(a.priceCents), ativo: a.active })),
@@ -83,6 +84,8 @@ export function EditorProduto({
     const errosLocais: Record<string, string> = {};
     const priceCents = parseMoney(preco);
     if (priceCents === null) errosLocais.priceCents = preco.trim() ? "Preço inválido. Use, por exemplo, 12,50" : "Informe o preço";
+    const promoPriceCents = promo.trim() ? parseMoney(promo) : null;
+    if (promo.trim() && promoPriceCents === null) errosLocais.promoPriceCents = "Preço inválido. Use, por exemplo, 9,90";
     const addons = adicionais.map((a, i) => {
       const p = parseMoney(a.preco || "0");
       if (p === null) errosLocais[`addons.${i}.priceCents`] = "Preço inválido";
@@ -100,6 +103,7 @@ export function EditorProduto({
       name: nome,
       description: descricao,
       priceCents: priceCents ?? 0,
+      promoPriceCents,
       active: ativo,
       addons,
       recipe,
@@ -218,6 +222,19 @@ export function EditorProduto({
             ajuda="Em reais, ex.: 42,90"
           />
         </div>
+        <Campo
+          rotulo="Preço promocional (opcional)"
+          inputMode="decimal"
+          placeholder="Sem promoção"
+          value={promo}
+          onChange={(e) => setPromo(e.target.value)}
+          onBlur={() => {
+            const p = parseMoney(promo);
+            if (p !== null) setPromo(moneyToInput(p));
+          }}
+          erro={erros.promoPriceCents}
+          ajuda="Quando preenchido, é o preço que vale no balcão e na vitrine. Deixe vazio para tirar a promoção."
+        />
         <Campo rotulo="Nome" value={nome} onChange={(e) => setNome(e.target.value)} erro={erros.name} placeholder="Ex.: Lasanha bolonhesa" />
         <CampoArea
           rotulo="Descrição"

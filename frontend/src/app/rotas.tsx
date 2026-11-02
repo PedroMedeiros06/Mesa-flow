@@ -3,6 +3,9 @@ import { Entrar } from "@/features/acesso/Entrar";
 import { EntrarAdmin } from "@/features/acesso/EntrarAdmin";
 import { Cardapio } from "@/features/cardapio/Cardapio";
 import { Estoque } from "@/features/estoque/Estoque";
+import { Balcao } from "@/features/pedidos/Balcao";
+import { Cozinha } from "@/features/pedidos/Cozinha";
+import { Pedidos } from "@/features/pedidos/Pedidos";
 import { EsqueciSenha } from "@/features/acesso/EsqueciSenha";
 import { PainelAdmin } from "@/features/admin/PainelAdmin";
 import { MENU_PAINEL } from "@/features/painel/menu";
@@ -35,6 +38,9 @@ function LojaEmBreve() {
 
 // Telas prontas; as demais mostram "em construção" até a etapa delas.
 const TELAS: Record<string, React.ReactNode> = {
+  balcao: <Balcao />,
+  cozinha: <Cozinha />,
+  pedidos: <Pedidos />,
   cardapio: <Cardapio />,
   estoque: <Estoque />,
 };

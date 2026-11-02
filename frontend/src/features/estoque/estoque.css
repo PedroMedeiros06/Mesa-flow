@@ -1,23 +1,4 @@
 /* Tela /app/estoque */
-.filtros {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.filtros button {
-  border: 2px solid var(--linha);
-  background: transparent;
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.filtros button[aria-pressed="true"] {
-  background: var(--tinta);
-  border-color: var(--tinta);
-  color: var(--fundo);
-}
 .ingredientes {
   list-style: none;
   margin: 0;
@@ -68,27 +49,6 @@
   font-family: var(--fonte-titulo);
   font-size: var(--t-2xl);
   color: var(--tinta);
-}
-.segmentos {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border: 2px solid var(--tinta);
-  border-radius: var(--raio-md);
-  overflow: hidden;
-}
-.segmentos button {
-  min-height: 44px;
-  border: 0;
-  background: transparent;
-  font-weight: 700;
-  cursor: pointer;
-}
-.segmentos button + button {
-  border-left: 2px solid var(--tinta);
-}
-.segmentos button[aria-pressed="true"] {
-  background: var(--tinta);
-  color: var(--fundo);
 }
 .mov-campos {
   display: grid;

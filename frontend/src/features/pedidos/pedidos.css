@@ -1,0 +1,554 @@
+/* Telas de pedidos: balcão (PDV), cozinha e lista do dia */
+
+/* ---------- balcão ---------- */
+.balcao {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 28px;
+  align-items: start;
+}
+.balcao-filtros {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 8px;
+  max-width: 640px;
+}
+.balcao-filtros .filtros {
+  margin-bottom: 0;
+}
+.balcao-cat {
+  margin-top: 20px;
+}
+.balcao-cat h2 {
+  font-size: var(--t-xl);
+  font-stretch: 85%;
+  font-weight: 800;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--tinta);
+}
+.tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.tile {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 6px;
+  padding: 10px 10px 12px;
+  text-align: left;
+  border: 2px solid var(--linha);
+  border-radius: var(--raio-md);
+  background: var(--papel);
+  color: var(--tinta);
+  cursor: pointer;
+}
+.tile:hover {
+  border-color: var(--laranja);
+}
+.tile:active {
+  transform: translateY(1px);
+}
+.tile img,
+.tile-sem-foto {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--raio-sm);
+}
+.tile-sem-foto {
+  display: grid;
+  place-items: center;
+  background: var(--papel-2);
+  color: var(--tinta-2);
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: var(--t-3xl);
+}
+.tile-nome {
+  font-weight: 800;
+  line-height: 1.2;
+}
+.tile-dica {
+  font-size: var(--t-xs);
+}
+
+.balcao-lado {
+  position: sticky;
+  top: 16px;
+}
+.balcao-comanda {
+  display: grid;
+  gap: 12px;
+}
+.balcao-titulo {
+  font-size: var(--t-2xl);
+  font-stretch: 85%;
+  font-weight: 800;
+}
+.balcao-vazio {
+  padding: 18px 0;
+}
+.balcao-enviado {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: var(--raio-md);
+  background: var(--feito);
+  color: var(--sobre-feito);
+}
+.balcao-enviado svg {
+  flex: none;
+  margin-top: 2px;
+}
+.linhas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.linhas > li {
+  display: grid;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 2px dashed var(--linha);
+}
+.linhas > li:last-child {
+  border-bottom: 0;
+}
+.linha-topo,
+.linha-base {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.linha-topo .num {
+  font-weight: 800;
+}
+.linha-extras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--t-sm);
+}
+.linha-base .suave {
+  font-size: var(--t-sm);
+}
+.qtd {
+  display: inline-grid;
+  grid-template-columns: 36px 36px 36px;
+  align-items: center;
+  border: 2px solid var(--linha);
+  border-radius: 999px;
+}
+.qtd button {
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--tinta);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.qtd button:hover:not(:disabled) {
+  background: var(--papel-2);
+}
+.qtd button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.qtd output {
+  text-align: center;
+  font-weight: 800;
+}
+.balcao-campos {
+  display: grid;
+  gap: 14px;
+}
+.pagamento,
+.escolhas {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.pagamento legend,
+.escolhas legend {
+  font-weight: 700;
+  font-size: var(--t-sm);
+  margin-bottom: 6px;
+  padding: 0;
+}
+.segmentos-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+.segmentos-4 button {
+  font-size: var(--t-sm);
+  padding: 0 4px;
+}
+.desconto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 8px;
+  align-items: start;
+}
+.desconto-tipo {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 26px;
+}
+.desconto-tipo button {
+  min-height: 44px;
+}
+.totais {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.totais div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.totais dd {
+  margin: 0;
+}
+.totais .total dt {
+  font-weight: 800;
+  font-size: var(--t-lg);
+}
+.totais .total dd {
+  font-size: var(--t-4xl);
+}
+.balcao-barra {
+  display: none;
+}
+.escolha-qtd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Com o menu lateral, abaixo disso a lista de produtos fica estreita demais ao lado do pedido. */
+@media (max-width: 1100px) {
+  .balcao {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .balcao-lado {
+    position: static;
+  }
+  .tiles {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
+
+/* Celular (sem menu lateral): atalho para o pedido, acima das abas de baixo */
+@media (max-width: 900px) {
+  .balcao-barra {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: var(--raio-md);
+    background: var(--laranja);
+    color: var(--sobre-cor);
+    font-weight: 800;
+    box-shadow: var(--sombra);
+    cursor: pointer;
+  }
+  .balcao {
+    padding-bottom: 72px;
+  }
+}
+
+/* ---------- cozinha ---------- */
+.cozinha-cab {
+  align-items: center;
+}
+.cozinha-colunas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.coluna h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--t-xl);
+  font-stretch: 85%;
+  font-weight: 800;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+  border-bottom: 3px solid var(--tinta);
+}
+.coluna h2 .num {
+  margin-left: auto;
+  font-family: var(--fonte-titulo);
+}
+.coluna-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+.ticket {
+  display: grid;
+  gap: 10px;
+}
+.ticket-cab {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.ticket-cab .numeral {
+  font-size: var(--t-4xl);
+}
+.ticket-cab .suave {
+  margin-left: auto;
+  font-size: var(--t-sm);
+  text-align: right;
+}
+.ticket-cliente {
+  font-weight: 800;
+}
+.ticket-itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ticket-itens > li {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr);
+  gap: 2px 6px;
+}
+.ticket-itens .qtd-x {
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: var(--t-lg);
+  line-height: 1.1;
+}
+.ticket-itens strong {
+  font-size: var(--t-md);
+  line-height: 1.3;
+}
+.ticket-itens ul {
+  grid-column: 2;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--t-sm);
+}
+.ticket-itens .tirar {
+  color: var(--brasa-texto);
+  font-weight: 700;
+}
+.ticket-obs {
+  padding: 8px 10px;
+  border-radius: var(--raio-sm);
+  background: var(--papel-2);
+  font-weight: 700;
+}
+.ticket-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.ticket-acoes .btn:first-child {
+  flex: 1;
+}
+.ticket-espera {
+  font-variant-numeric: tabular-nums;
+}
+.ticket-atrasado {
+  color: var(--brasa-texto);
+  font-weight: 800;
+}
+.coluna-vazia {
+  padding: 18px 4px;
+}
+
+@media (max-width: 1100px) {
+  .cozinha-colunas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- pedidos do dia ---------- */
+.pedidos-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+.pedidos-filtros .campo {
+  width: 190px;
+}
+.pedidos-filtros .filtros {
+  margin-bottom: 4px;
+}
+.lista-pedidos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 960px;
+  border-top: 2px solid var(--tinta);
+}
+.lista-pedidos > li {
+  border-bottom: 2px dashed var(--linha);
+}
+.pedido-linha {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 130px 100px;
+  gap: 12px 16px;
+  align-items: center;
+  padding: 12px 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--raio-md);
+}
+.pedido-linha:hover {
+  background: var(--papel-2);
+}
+.pedido-linha .numeral {
+  font-size: var(--t-2xl);
+}
+.pedido-linha .resumo {
+  display: grid;
+  min-width: 0;
+}
+.pedido-linha .resumo .suave {
+  font-size: var(--t-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pedido-linha > .etiqueta {
+  justify-self: end;
+}
+.pedido-linha .valor {
+  font-weight: 800;
+  text-align: right;
+}
+.pedido-cancelado .valor {
+  text-decoration: line-through;
+  color: var(--tinta-2);
+}
+.resumo-dia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 16px;
+  color: var(--tinta-2);
+}
+.resumo-dia strong {
+  color: var(--tinta);
+}
+.detalhe-itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.detalhe-itens li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.detalhe-itens .suave {
+  display: block;
+  font-size: var(--t-sm);
+}
+
+@media (max-width: 560px) {
+  .pedido-linha {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "num resumo valor"
+      "num status status";
+  }
+  .pedido-linha .numeral {
+    grid-area: num;
+  }
+  .pedido-linha .resumo {
+    grid-area: resumo;
+  }
+  .pedido-linha .valor {
+    grid-area: valor;
+  }
+  .pedido-linha .etiqueta {
+    grid-area: status;
+    justify-self: start;
+  }
+}
+
+/* ---------- impressão: ticket de 80 mm ---------- */
+.so-impressao {
+  display: none;
+}
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .so-impressao,
+  .so-impressao * {
+    visibility: visible;
+  }
+  .so-impressao {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 72mm;
+    color: #000;
+    background: #fff;
+    font: 12pt/1.3 var(--fonte-texto, sans-serif);
+  }
+  .so-impressao h1 {
+    font-size: 22pt;
+    margin: 0 0 2mm;
+  }
+  .so-impressao ul {
+    list-style: none;
+    padding: 0;
+    margin: 2mm 0;
+  }
+  .so-impressao li {
+    margin-bottom: 1.5mm;
+  }
+  .so-impressao hr {
+    border: 0;
+    border-top: 1px dashed #000;
+    margin: 2mm 0;
+  }
+}
