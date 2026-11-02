@@ -1,12 +1,15 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   MAX_ADDONS,
   MAX_IMAGE_BYTES,
   MAX_PRODUCT_IMAGES,
   moneyToInput,
   parseMoney,
+  parseQuantity,
+  quantityToInput,
   productInputSchema,
   type Category,
+  type IngredientOption,
   type Product,
 } from "@mesaflow/shared";
 import { ApiErro } from "@/lib/http";
@@ -19,6 +22,13 @@ interface AdicionalForm {
   nome: string;
   preco: string;
   ativo: boolean;
+}
+
+interface ItemFicha {
+  chave: string;
+  ingredienteId: string;
+  quantidade: string;
+  removivel: boolean;
 }
 
 let chaves = 0;
@@ -48,12 +58,26 @@ export function EditorProduto({
   const [adicionais, setAdicionais] = useState<AdicionalForm[]>(
     (inicial?.addons ?? []).map((a) => ({ chave: novaChave(), nome: a.name, preco: moneyToInput(a.priceCents), ativo: a.active })),
   );
+  const [ficha, setFicha] = useState<ItemFicha[]>(
+    (inicial?.recipe ?? []).map((r) => ({
+      chave: novaChave(),
+      ingredienteId: r.ingredientId,
+      quantidade: quantityToInput(r.quantityMilli),
+      removivel: r.removable,
+    })),
+  );
+  // null = ainda carregando (ou falhou): aí a ficha não é enviada e o servidor mantém a atual.
+  const [opcoes, setOpcoes] = useState<IngredientOption[] | null>(null);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [confirmarApagar, setConfirmarApagar] = useState(false);
   const arquivo = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    apiCardapio.opcoesIngredientes().then(setOpcoes, () => setOpcoes(null));
+  }, []);
 
   function montar() {
     const errosLocais: Record<string, string> = {};
@@ -64,6 +88,13 @@ export function EditorProduto({
       if (p === null) errosLocais[`addons.${i}.priceCents`] = "Preço inválido";
       return { name: a.nome, priceCents: p ?? 0, active: a.ativo };
     });
+    const recipe = opcoes
+      ? ficha.map((f, i) => {
+          const q = parseQuantity(f.quantidade);
+          if (q === null || q === 0) errosLocais[`recipe.${i}.quantityMilli`] = f.quantidade.trim() ? "Quantidade inválida" : "Informe a quantidade";
+          return { ingredientId: f.ingredienteId, quantityMilli: q ?? 0, removable: f.removivel };
+        })
+      : undefined;
     const dados = productInputSchema.safeParse({
       categoryId: categoriaId,
       name: nome,
@@ -71,6 +102,7 @@ export function EditorProduto({
       priceCents: priceCents ?? 0,
       active: ativo,
       addons,
+      recipe,
     });
     if (!dados.success) {
       for (const i of dados.error.issues) errosLocais[i.path.join(".")] ??= i.message;
@@ -142,6 +174,11 @@ export function EditorProduto({
       setEnviando(false);
     }
   }
+
+  const mudarFicha = (chave: string, campo: Partial<ItemFicha>) =>
+    setFicha((lista) => lista.map((f) => (f.chave === chave ? { ...f, ...campo } : f)));
+  const unidadeDe = (id: string) => opcoes?.find((o) => o.id === id)?.unit ?? "";
+  const livres = (opcoes ?? []).filter((o) => !ficha.some((f) => f.ingredienteId === o.id));
 
   const mudarAdicional = (chave: string, campo: Partial<AdicionalForm>) =>
     setAdicionais((lista) => lista.map((a) => (a.chave === chave ? { ...a, ...campo } : a)));
@@ -235,6 +272,73 @@ export function EditorProduto({
               onClick={() => setAdicionais((l) => [...l, { chave: novaChave(), nome: "", preco: "", ativo: true }])}
             >
               Adicionar adicional
+            </Botao>
+          )}
+        </fieldset>
+
+        <fieldset className="editor-bloco">
+          <legend>Ficha técnica</legend>
+          <p className="campo-ajuda">
+            Quanto de cada ingrediente sai do estoque a cada unidade vendida. Marque “cliente pode tirar” para permitir
+            pedidos como “sem cebola”.
+          </p>
+          {erros.recipe && <span className="campo-erro">{erros.recipe}</span>}
+          {opcoes === null && <p className="suave">Carregando ingredientes...</p>}
+          {opcoes?.length === 0 && (
+            <p className="suave">Nenhum ingrediente cadastrado. Cadastre em Estoque para montar a ficha técnica.</p>
+          )}
+          {opcoes &&
+            ficha.map((f, i) => {
+              const nome = opcoes.find((o) => o.id === f.ingredienteId)?.name ?? "";
+              return (
+                <div className="ficha-item" key={f.chave}>
+                  <Seletor
+                    rotulo={`Ingrediente ${i + 1}`}
+                    value={f.ingredienteId}
+                    onChange={(e) => mudarFicha(f.chave, { ingredienteId: e.target.value })}
+                  >
+                    {opcoes
+                      .filter((o) => o.id === f.ingredienteId || !ficha.some((x) => x.ingredienteId === o.id))
+                      .map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                  </Seletor>
+                  <Campo
+                    rotulo={`Quantidade (${unidadeDe(f.ingredienteId)})`}
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={f.quantidade}
+                    onChange={(e) => mudarFicha(f.chave, { quantidade: e.target.value })}
+                    erro={erros[`recipe.${i}.quantityMilli`]}
+                  />
+                  <button
+                    type="button"
+                    className="icone-btn"
+                    aria-label={`Tirar ${nome || "ingrediente"} da ficha`}
+                    onClick={() => setFicha((lista) => lista.filter((x) => x.chave !== f.chave))}
+                  >
+                    <Icone nome="fechar" />
+                  </button>
+                  <Marcador
+                    rotulo="Cliente pode tirar"
+                    checked={f.removivel}
+                    onChange={(e) => mudarFicha(f.chave, { removivel: e.target.checked })}
+                  />
+                </div>
+              );
+            })}
+          {opcoes && livres.length > 0 && (
+            <Botao
+              variante="claro"
+              pequeno
+              icone="mais"
+              onClick={() =>
+                setFicha((l) => [...l, { chave: novaChave(), ingredienteId: livres[0]!.id, quantidade: "", removivel: false }])
+              }
+            >
+              Adicionar ingrediente
             </Botao>
           )}
         </fieldset>

@@ -1,8 +1,10 @@
 import {
   catalogSchema,
   categorySchema,
+  ingredientOptionSchema,
   productSchema,
   type Catalog,
+  type IngredientOption,
   type CategoryInput,
   type Product,
   type ProductInput,
@@ -21,6 +23,11 @@ const pedir = (caminho: string, init?: RequestInit) => sessao.requisicao("membro
 export const apiCardapio = {
   async carregar(): Promise<Catalog> {
     return catalogSchema.parse(await (await pedir("/catalog")).json());
+  },
+
+  /** Ingredientes do estoque para montar a ficha técnica. */
+  async opcoesIngredientes(): Promise<IngredientOption[]> {
+    return ingredientOptionSchema.array().parse(await (await pedir("/catalog/ingredient-options")).json());
   },
 
   async criarCategoria(dados: CategoryInput) {

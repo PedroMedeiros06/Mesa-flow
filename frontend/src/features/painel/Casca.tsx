@@ -12,7 +12,7 @@ export interface ItemCasca {
   caminho: string;
 }
 
-const NOMES_TEMA: Record<Tema, string> = { sistema: "Tema do aparelho", light: "Claro", dark: "Escuro" };
+const NOMES_TEMA: Record<Tema, string> = { sistema: "Automático", light: "Claro", dark: "Escuro" };
 
 function SeletorTema({ id }: { id: string }) {
   const [tema, setTema] = useTema();

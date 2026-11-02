@@ -1,8 +1,4 @@
 /* Tela /app/cardapio */
-.recado {
-  min-height: 28px;
-  margin: -16px 0 12px;
-}
 .cardapio {
   display: grid;
   gap: 32px;
@@ -108,33 +104,6 @@
 .prod-ordem {
   display: grid;
 }
-.icone-btn {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: var(--raio-md);
-  background: transparent;
-  color: var(--tinta);
-  cursor: pointer;
-}
-.icone-btn:hover:not(:disabled) {
-  background: var(--papel-2);
-}
-.icone-btn:disabled {
-  color: var(--linha);
-  cursor: default;
-}
-.link-btn {
-  border: 0;
-  background: none;
-  padding: 0;
-  color: var(--laranja-texto);
-  font-weight: 800;
-  text-decoration: underline;
-  cursor: pointer;
-}
 
 /* ---------- editor de produto ---------- */
 .editor-produto {
@@ -170,6 +139,20 @@
 }
 .adicional .icone-btn {
   margin-bottom: 4px;
+}
+.ficha-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 40px;
+  gap: 8px 10px;
+  align-items: end;
+  padding-bottom: 10px;
+  border-bottom: 2px dashed var(--linha);
+}
+.ficha-item .icone-btn {
+  margin-bottom: 4px;
+}
+.ficha-item .marcador {
+  grid-column: 1 / -1;
 }
 .fotos {
   display: flex;
@@ -238,6 +221,9 @@
     grid-template-columns: 1fr;
   }
   .adicional {
+    grid-template-columns: minmax(0, 1fr) 96px 40px;
+  }
+  .ficha-item {
     grid-template-columns: minmax(0, 1fr) 96px 40px;
   }
 }
