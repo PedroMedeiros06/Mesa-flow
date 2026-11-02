@@ -14,7 +14,7 @@ import {
 } from "@mesaflow/shared";
 import { ApiErro } from "@/lib/http";
 import { useSessao } from "@/lib/useSessao";
-import { Aviso, Botao, Campo, Comanda, CorteComanda } from "@/ui/componentes";
+import { Aviso, Botao, Campo, Comanda, CorteComanda, Etiqueta } from "@/ui/componentes";
 import { Icone } from "@/ui/Icone";
 import { apiPedidos } from "./api";
 import {
@@ -207,7 +207,13 @@ export function Balcao() {
                 <ul className="tiles">
                   {c.products.map((p) => (
                     <li key={p.id}>
-                      <button type="button" className="tile" onClick={() => clicarProduto(p)}>
+                      <button
+                        type="button"
+                        className="tile"
+                        disabled={p.soldOut}
+                        aria-label={p.soldOut ? `${p.name}, esgotado` : undefined}
+                        onClick={() => clicarProduto(p)}
+                      >
                         {p.imageUrl ? (
                           <img src={p.imageUrl} alt="" loading="lazy" />
                         ) : (
@@ -216,8 +222,16 @@ export function Balcao() {
                           </span>
                         )}
                         <span className="tile-nome">{p.name}</span>
-                        <Preco p={p} />
-                        {temEscolhas(p) && <span className="tile-dica suave">Com opções</span>}
+                        {p.soldOut ? (
+                          <span className="tile-dica">
+                            <Etiqueta tom="neutra" icone="relogio">
+                              Esgotado
+                            </Etiqueta>
+                          </span>
+                        ) : (
+                          <Preco p={p} />
+                        )}
+                        {!p.soldOut && temEscolhas(p) && <span className="tile-dica suave">Com opções</span>}
                       </button>
                     </li>
                   ))}

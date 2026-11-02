@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderInputSchema, orderTotals, unitPrice } from "./orders.js";
+import { orderInputSchema, orderTotals, storefrontOrderInputSchema, unitPrice } from "./orders.js";
 
 describe("unitPrice", () => {
   it("usa o promocional quando existe e soma os adicionais", () => {
@@ -45,5 +45,24 @@ describe("orderInputSchema", () => {
   });
   it("percentual acima de 100 é recusado", () => {
     expect(orderInputSchema.safeParse({ ...base, discount: { kind: "percentual", value: 101 } }).success).toBe(false);
+  });
+});
+
+describe("storefrontOrderInputSchema", () => {
+  const base = {
+    clientRequestId: "8d4f8a39-7b4f-4f43-9d55-3a1d1d1b2f10",
+    customerName: "Bia",
+    customerPhone: "(11) 98888-7777",
+    paymentMethod: "dinheiro",
+    items: [{ productId: "1d4f8a39-7b4f-4f43-9d55-3a1d1d1b2f10", quantity: 1 }],
+  };
+  it("guarda o telefone só com dígitos e não tem desconto", () => {
+    const r = storefrontOrderInputSchema.parse({ ...base, discount: { kind: "valor", value: 100 } });
+    expect(r.customerPhone).toBe("11988887777");
+    expect(r).not.toHaveProperty("discount");
+  });
+  it("exige nome e telefone com DDD", () => {
+    expect(storefrontOrderInputSchema.safeParse({ ...base, customerPhone: "98888-7777" }).success).toBe(false);
+    expect(storefrontOrderInputSchema.safeParse({ ...base, customerName: " " }).success).toBe(false);
   });
 });

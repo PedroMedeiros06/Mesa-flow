@@ -52,8 +52,15 @@
 .tile:hover {
   border-color: var(--laranja);
 }
-.tile:active {
+.tile:active:not(:disabled) {
   transform: translateY(1px);
+}
+.tile:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.tile:disabled:hover {
+  border-color: var(--linha);
 }
 .tile img,
 .tile-sem-foto {
@@ -188,10 +195,11 @@
   margin-bottom: 6px;
   padding: 0;
 }
-.segmentos-4 {
+/* Classe dupla: ganha do .segmentos do ui.css qualquer que seja a ordem em que os CSS carregam. */
+.segmentos.segmentos-4 {
   grid-template-columns: repeat(4, 1fr);
 }
-.segmentos-4 button {
+.segmentos.segmentos-4 button {
   font-size: var(--t-sm);
   padding: 0 4px;
 }
@@ -201,7 +209,7 @@
   gap: 8px;
   align-items: start;
 }
-.desconto-tipo {
+.segmentos.desconto-tipo {
   grid-template-columns: 1fr 1fr;
   margin-top: 26px;
 }

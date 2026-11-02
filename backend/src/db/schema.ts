@@ -359,6 +359,8 @@ export const orders = app
       origin: orderOrigin("origin").notNull(),
       status: orderStatus("status").notNull().default("novo"),
       customerName: text("customer_name").notNull().default(""),
+      // Só dígitos, com DDD. Vem da vitrine, para o restaurante falar com o cliente.
+      customerPhone: text("customer_phone").notNull().default(""),
       notes: text("notes").notNull().default(""),
       paymentMethod: paymentMethod("payment_method"),
       subtotalCents: integer("subtotal_cents").notNull(),

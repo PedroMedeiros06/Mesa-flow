@@ -1,11 +1,11 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
 import type { Permission } from "@mesaflow/shared";
 import { primeiroNome, saudacao } from "@/lib/formato";
 import { ApiErro } from "@/lib/http";
 import { sessao } from "@/lib/sessao";
 import { useSessao } from "@/lib/useSessao";
-import { Aviso, Comanda, CorteComanda } from "@/ui/componentes";
+import { Aviso, Botao, Comanda, CorteComanda } from "@/ui/componentes";
 import { Casca } from "./Casca";
 import { MENU_PAINEL, menuVisivel, podeVer } from "./menu";
 
@@ -98,8 +98,42 @@ export function InicioRestaurante() {
           <CorteComanda />
           <p>Código do restaurante. Sua equipe usa este código, o CPF e a senha para entrar.</p>
         </Comanda>
+        <Comanda>
+          <strong>Cardápio online</strong>
+          <p className="suave" style={{ margin: "6px 0 12px" }}>
+            Mande este link aos clientes ou ponha num QR code na mesa. Os pedidos chegam na Cozinha.
+          </p>
+          <LinkVitrine codigo={company.code} />
+        </Comanda>
         <Aviso tom="info">O resumo do dia (vendas, pedidos e mais vendidos) aparece aqui na etapa 10.</Aviso>
       </div>
     </>
+  );
+}
+
+function LinkVitrine({ codigo }: { codigo: string }) {
+  const [copiado, setCopiado] = useState(false);
+  const url = `${window.location.origin}/loja/${codigo}`;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+      <a href={url} target="_blank" rel="noreferrer" style={{ fontWeight: 700, wordBreak: "break-all" }}>
+        {url}
+      </a>
+      <Botao
+        pequeno
+        variante="claro"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(url);
+            setCopiado(true);
+            window.setTimeout(() => setCopiado(false), 2500);
+          } catch {
+            // sem permissão de área de transferência: o link continua visível para copiar à mão
+          }
+        }}
+      >
+        {copiado ? "Copiado" : "Copiar link"}
+      </Botao>
+    </div>
   );
 }

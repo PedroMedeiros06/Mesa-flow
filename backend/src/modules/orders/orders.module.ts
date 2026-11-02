@@ -8,5 +8,7 @@ import { OrdersService } from "./orders.service.js";
   imports: [StockModule],
   controllers: [OrdersController],
   providers: [OrdersService, StorageClient],
+  // A vitrine (etapa 8) grava pedidos pelo mesmo serviço.
+  exports: [OrdersService],
 })
 export class OrdersModule {}

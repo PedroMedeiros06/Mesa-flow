@@ -35,6 +35,7 @@ CREATE TABLE "app"."orders" (
 	"origin" "app"."order_origin" NOT NULL,
 	"status" "app"."order_status" DEFAULT 'novo' NOT NULL,
 	"customer_name" text DEFAULT '' NOT NULL,
+	"customer_phone" text DEFAULT '' NOT NULL,
 	"notes" text DEFAULT '' NOT NULL,
 	"payment_method" "app"."payment_method",
 	"subtotal_cents" integer NOT NULL,

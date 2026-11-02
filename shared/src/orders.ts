@@ -159,6 +159,7 @@ export const orderSchema = z.object({
   origin: z.enum(ORDER_ORIGINS),
   status: z.enum(ORDER_STATUSES),
   customerName: z.string(),
+  customerPhone: z.string(),
   notes: z.string(),
   paymentMethod: z.enum(PAYMENT_METHODS).nullable(),
   subtotalCents: z.number().int(),
@@ -184,6 +185,8 @@ export const sellableProductSchema = z.object({
   imageUrl: z.string().nullable(),
   addons: z.array(z.object({ id: z.uuid(), name: z.string(), priceCents: z.number().int() })),
   removable: z.array(z.object({ ingredientId: z.uuid(), name: z.string() })),
+  /** Algum ingrediente obrigatório não dá nem para uma unidade. */
+  soldOut: z.boolean(),
 });
 export type SellableProduct = z.infer<typeof sellableProductSchema>;
 
@@ -191,3 +194,52 @@ export const sellableMenuSchema = z.object({
   categories: z.array(z.object({ id: z.uuid(), name: z.string(), products: z.array(sellableProductSchema) })),
 });
 export type SellableMenu = z.infer<typeof sellableMenuSchema>;
+
+// ---------- vitrine (público, sem login) ----------
+
+/** Celular ou fixo com DDD: 10 ou 11 dígitos. */
+export function normalizePhone(texto: string): string {
+  return texto.replace(/\D/g, "");
+}
+
+export const storefrontOrderInputSchema = z.object({
+  clientRequestId: z.uuid(),
+  customerName: z.string().trim().min(2, "Informe seu nome").max(60, "Use no máximo 60 caracteres"),
+  customerPhone: z
+    .string()
+    .transform(normalizePhone)
+    .pipe(z.string().regex(/^\d{10,11}$/, "Informe o telefone com DDD")),
+  notes: z.string().trim().max(300, "Use no máximo 300 caracteres").default(""),
+  paymentMethod: z.enum(PAYMENT_METHODS, { error: "Escolha como vai pagar" }),
+  /** Dinheiro: "troco para quanto". */
+  receivedCents: z.number().int().min(0).max(MAX_CENTS).nullable().default(null),
+  items: z
+    .array(orderItemInputSchema)
+    .min(1, "Adicione pelo menos um item")
+    .max(MAX_ORDER_ITEMS, `No máximo ${MAX_ORDER_ITEMS} itens por pedido`),
+});
+export type StorefrontOrderInput = z.input<typeof storefrontOrderInputSchema>;
+
+export const storefrontSchema = z.object({
+  company: z.object({ code: z.string(), name: z.string(), whatsapp: z.string().nullable() }),
+  menu: sellableMenuSchema,
+});
+export type Storefront = z.infer<typeof storefrontSchema>;
+
+/** O que o cliente vê ao acompanhar o pedido: sem dados internos (quem lançou, telefone, troco). */
+export const publicOrderSchema = orderSchema
+  .pick({
+    id: true,
+    number: true,
+    status: true,
+    customerName: true,
+    notes: true,
+    paymentMethod: true,
+    totalCents: true,
+    createdAt: true,
+    statusChangedAt: true,
+    cancelReason: true,
+    items: true,
+  })
+  .extend({ company: z.object({ code: z.string(), name: z.string(), whatsapp: z.string().nullable() }) });
+export type PublicOrder = z.infer<typeof publicOrderSchema>;

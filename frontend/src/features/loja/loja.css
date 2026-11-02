@@ -1,0 +1,247 @@
+/* Vitrine pública: pensada para o celular do cliente, uma coluna estreita também no computador. */
+.loja {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 16px 120px;
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  min-height: 100dvh;
+}
+.loja-erro {
+  padding-top: 64px;
+}
+.loja-topo {
+  display: grid;
+  gap: 6px;
+}
+.loja-topo h1 {
+  font-size: var(--t-4xl);
+  font-stretch: 80%;
+  font-weight: 800;
+  line-height: 0.95;
+}
+.loja-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.loja-cats {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 10px 16px;
+  background: var(--fundo);
+  border-bottom: 2px solid var(--linha);
+  scrollbar-width: none;
+}
+.loja-cats a {
+  flex: none;
+  padding: 6px 14px;
+  border: 2px solid var(--linha);
+  border-radius: 999px;
+  font-weight: 700;
+  color: var(--tinta);
+  text-decoration: none;
+}
+.loja-cats a:hover {
+  border-color: var(--tinta);
+}
+.loja-cat {
+  scroll-margin-top: 64px;
+}
+.loja-cat h2 {
+  font-size: var(--t-2xl);
+  font-stretch: 85%;
+  font-weight: 800;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--tinta);
+}
+.loja-prods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.loja-prods li {
+  border-bottom: 2px dashed var(--linha);
+}
+.loja-prod {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.loja-prod:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.loja-prod-texto {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+.loja-prod-texto strong {
+  font-size: var(--t-md);
+}
+.loja-desc {
+  font-size: var(--t-sm);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.loja-promo {
+  color: var(--laranja-texto);
+}
+.loja-prod img {
+  width: 92px;
+  height: 92px;
+  object-fit: cover;
+  border-radius: var(--raio-md);
+}
+.loja-rodape {
+  margin-top: 24px;
+  font-size: var(--t-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.loja-marca {
+  font-size: var(--t-md);
+  color: var(--tinta);
+}
+.loja-barra {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  width: min(608px, calc(100% - 32px));
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--raio-md);
+  background: var(--laranja);
+  color: var(--sobre-cor);
+  font-weight: 800;
+  box-shadow: var(--sombra);
+  cursor: pointer;
+}
+.loja-barra span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.loja-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-weight: 800;
+}
+.loja-total .numeral {
+  font-size: var(--t-3xl);
+}
+.loja-dados {
+  gap: 14px;
+}
+
+/* ---------- acompanhar ---------- */
+.acompanhar-comanda {
+  display: grid;
+  gap: 16px;
+}
+.acompanhar-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px;
+}
+.acompanhar-cab > span:first-child {
+  display: grid;
+  font-weight: 700;
+}
+.acompanhar-cab .numeral {
+  font-size: var(--t-6xl);
+}
+.acompanhar-cab .suave {
+  text-align: right;
+  font-size: var(--t-sm);
+}
+.passos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.passos li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  color: var(--tinta-2);
+}
+/* trilho entre as bolinhas */
+.passos li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 30px;
+  bottom: -8px;
+  border-left: 2px dashed var(--linha);
+}
+.passo-marca {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--linha);
+  display: grid;
+  place-items: center;
+  background: var(--papel);
+}
+.passos .passo-feito {
+  color: var(--tinta);
+}
+.passo-feito .passo-marca {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
+}
+.passos .passo-atual {
+  color: var(--tinta);
+}
+.passo-atual .passo-marca {
+  border-color: var(--laranja);
+  background: var(--laranja);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--laranja) 30%, transparent);
+}
+.passo-atual strong {
+  font-size: var(--t-lg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .passo-atual .passo-marca {
+    animation: pulso 1.8s ease-in-out infinite;
+  }
+}
+@keyframes pulso {
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in oklab, var(--laranja) 10%, transparent);
+  }
+}

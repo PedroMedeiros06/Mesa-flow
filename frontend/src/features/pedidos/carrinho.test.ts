@@ -11,6 +11,7 @@ const lasanha: SellableProduct = {
   imageUrl: null,
   addons: [{ id: "22222222-2222-4222-8222-222222222222", name: "Bacon", priceCents: 400 }],
   removable: [{ ingredientId: "33333333-3333-4333-8333-333333333333", name: "Cebola" }],
+  soldOut: false,
 };
 
 const linha = (extra: Partial<NovaLinha> = {}): NovaLinha => ({

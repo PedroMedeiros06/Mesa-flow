@@ -20,6 +20,7 @@ import {
   type MemberProfile,
   type Order,
   type orderInputSchema,
+  type OrderOrigin,
   type SellableMenu,
   type StatusChange,
 } from "@mesaflow/shared";
@@ -41,6 +42,13 @@ import { StorageClient } from "../../storage/storage.client.js";
 import { StockService, type Consumo } from "../stock/stock.service.js";
 
 type OrderData = z.output<typeof orderInputSchema>;
+
+/** O que qualquer canal (balcão, vitrine, mesa) manda para gravar um pedido. */
+export type NovoPedido = Omit<OrderData, "customerName"> & {
+  origin: OrderOrigin;
+  customerName: string;
+  customerPhone: string;
+};
 type CancelData = z.output<typeof cancelOrderSchema>;
 
 /** Dia do pedido no fuso do restaurante (por enquanto todos em São Paulo). */
@@ -92,7 +100,7 @@ export class OrdersService {
       .where(and(eq(products.companyId, companyId), eq(products.active, true)))
       .orderBy(asc(products.position), asc(products.name));
     const ids = prods.map((p) => p.id);
-    const [addons, imgs, removiveis] = ids.length
+    const [addons, imgs, removiveis, obrigatorios] = ids.length
       ? await Promise.all([
           this.adicionaisAtivos(this.conn, companyId, ids),
           this.conn
@@ -101,8 +109,22 @@ export class OrdersService {
             .where(and(eq(productImages.companyId, companyId), inArray(productImages.productId, ids)))
             .orderBy(asc(productImages.position)),
           this.removiveis(this.conn, companyId, ids),
+          // Ingredientes que não dá para tirar e cujo saldo não cobre uma unidade: produto esgotado.
+          this.conn
+            .select({ productId: productIngredients.productId })
+            .from(productIngredients)
+            .innerJoin(ingredients, eq(ingredients.id, productIngredients.ingredientId))
+            .where(
+              and(
+                eq(productIngredients.companyId, companyId),
+                inArray(productIngredients.productId, ids),
+                eq(productIngredients.removable, false),
+                sql`${ingredients.stockMilli} < ${productIngredients.quantityMilli}`,
+              ),
+            ),
         ])
-      : [[], [], []];
+      : [[], [], [], []];
+    const esgotados = new Set(obrigatorios.map((o) => o.productId));
 
     return {
       categories: cats
@@ -122,6 +144,7 @@ export class OrdersService {
                 imageUrl: foto ? this.storage.publicUrl(foto.path) : null,
                 addons: addons.filter((a) => a.productId === p.id).map(({ id, name, priceCents }) => ({ id, name, priceCents })),
                 removable: removiveis.filter((r) => r.productId === p.id).map(({ ingredientId, name }) => ({ ingredientId, name })),
+                soldOut: esgotados.has(p.id),
               };
             }),
         }))
@@ -162,11 +185,16 @@ export class OrdersService {
     if (data.discount && !can(perfil.member.role, perfil.member.permissions, "orders.discount")) {
       throw new ForbiddenException("Você não tem permissão para dar desconto.");
     }
+    return this.registrar(companyId, perfil.member.id, { ...data, origin: "balcao", customerPhone: "" });
+  }
+
+  /** Grava um pedido de qualquer canal, uma vez só por clientRequestId. memberId null = cliente pela vitrine. */
+  async registrar(companyId: string, memberId: string | null, data: NovoPedido): Promise<{ order: Order; created: boolean }> {
     const repetido = await this.porRequisicao(companyId, data.clientRequestId);
     if (repetido) return { order: repetido, created: false };
 
     try {
-      const id = await this.conn.transaction((tx) => this.gravar(tx, companyId, perfil.member.id, data));
+      const id = await this.conn.transaction((tx) => this.gravar(tx, companyId, memberId, data));
       return { order: await this.get(companyId, id), created: true };
     } catch (erro) {
       // Duas tentativas iguais ao mesmo tempo: a segunda esbarra no índice único e devolve a primeira.
@@ -178,7 +206,7 @@ export class OrdersService {
     }
   }
 
-  private async gravar(tx: Transaction, companyId: string, memberId: string, data: OrderData): Promise<string> {
+  private async gravar(tx: Transaction, companyId: string, memberId: string | null, data: NovoPedido): Promise<string> {
     const productIds = [...new Set(data.items.map((i) => i.productId))];
     const prods = await tx
       .select({ id: products.id, name: products.name, priceCents: products.priceCents, promoPriceCents: products.promoPriceCents })
@@ -251,8 +279,9 @@ export class OrdersService {
         companyId,
         day: contador!.day,
         number: contador!.last,
-        origin: "balcao",
+        origin: data.origin,
         customerName: data.customerName,
+        customerPhone: data.customerPhone,
         notes: data.notes,
         paymentMethod: data.paymentMethod,
         ...totais,
@@ -270,6 +299,12 @@ export class OrdersService {
   }
 
   // ---------- ler ----------
+
+  /** Pedido ou null (sem 404), para quem precisa decidir a mensagem. */
+  async find(companyId: string, id: string): Promise<Order | null> {
+    const [order] = await this.buscar(companyId, [eq(orders.id, id)]);
+    return order ?? null;
+  }
 
   async get(companyId: string, id: string): Promise<Order> {
     const [order] = await this.buscar(companyId, [eq(orders.id, id)]);
@@ -320,6 +355,7 @@ export class OrdersService {
       origin: o.origin,
       status: o.status,
       customerName: o.customerName,
+      customerPhone: o.customerPhone,
       notes: o.notes,
       paymentMethod: o.paymentMethod,
       subtotalCents: o.subtotalCents,

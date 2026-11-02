@@ -3,6 +3,8 @@ import { Entrar } from "@/features/acesso/Entrar";
 import { EntrarAdmin } from "@/features/acesso/EntrarAdmin";
 import { Cardapio } from "@/features/cardapio/Cardapio";
 import { Estoque } from "@/features/estoque/Estoque";
+import { AcompanharPedido } from "@/features/loja/AcompanharPedido";
+import { Loja } from "@/features/loja/Loja";
 import { Balcao } from "@/features/pedidos/Balcao";
 import { Cozinha } from "@/features/pedidos/Cozinha";
 import { Pedidos } from "@/features/pedidos/Pedidos";
@@ -23,15 +25,6 @@ function NaoEncontrado() {
       <Link className={classeBotao("primario")} to="/">
         Ir para o início
       </Link>
-    </main>
-  );
-}
-
-function LojaEmBreve() {
-  return (
-    <main style={{ padding: "64px 16px", maxWidth: 480, margin: "0 auto", display: "grid", gap: 20 }}>
-      <Marca />
-      <Aviso tom="info">O cardápio online dos restaurantes chega na etapa 8 do projeto.</Aviso>
     </main>
   );
 }
@@ -58,7 +51,8 @@ export const rotas: RouteObject[] = [
   { path: "/", element: <Site /> },
   { path: "/entrar", element: <Entrar /> },
   { path: "/esqueci-senha", element: <EsqueciSenha /> },
-  { path: "/loja/:codigo", element: <LojaEmBreve /> },
+  { path: "/loja/:codigo", element: <Loja /> },
+  { path: "/loja/:codigo/pedido/:id", element: <AcompanharPedido /> },
   { path: "/status", element: <Status /> },
   {
     path: "/app",

@@ -1,5 +1,5 @@
 {
-  "id": "10ff7212-d891-4539-af85-9a03e88576b1",
+  "id": "9c1bafe7-2d15-46f4-a4df-563018470c26",
   "prevId": "d60a32ad-a619-4e16-ad22-b67329d617c9",
   "version": "7",
   "dialect": "postgresql",
@@ -715,6 +715,13 @@
         },
         "customer_name": {
           "name": "customer_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "customer_phone": {
+          "name": "customer_phone",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
