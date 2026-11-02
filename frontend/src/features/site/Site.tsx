@@ -1,5 +1,10 @@
-import { Icone } from "../Icone";
-import { reais } from "../dados";
+import { Link } from "react-router";
+import { Icone } from "@/ui/Icone";
+import { Marca, classeBotao } from "@/ui/componentes";
+import "./site.css";
+
+const reais = (centavos: number) =>
+  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const AREAS = [
   {
@@ -24,22 +29,19 @@ const AREAS = [
   },
 ];
 
-export function Inicio() {
+export function Site() {
   return (
     <>
       <div className="lp">
         <header className="lp-topo">
-          <a className="marca" href="/prototipo/inicio">
-            <span className="marca-selo" aria-hidden="true" />
-            MesaFlow
-          </a>
+          <Marca />
           <nav aria-label="Seções">
             <a href="#como-funciona">Como funciona</a>
             <a href="#planos">Planos</a>
           </nav>
-          <a className="btn btn-contorno btn-sm" href="/prototipo/entrar">
+          <Link className={classeBotao("contorno", { pequeno: true })} to="/entrar">
             Entrar
-          </a>
+          </Link>
         </header>
 
         <section className="lp-heroi">
@@ -63,17 +65,17 @@ export function Inicio() {
           <div className="lp-impressora" aria-label="Exemplo de comanda impressa">
             <div className="lp-boca" />
             <div className="lp-papel">
-              <div className="ticket">
-                <div className="ticket-linha">
+              <div className="comanda">
+                <div className="comanda-linha">
                   <span className="suave">Pedido 214</span>
                   <span className="suave">20:42</span>
                 </div>
                 <p style={{ marginTop: 10 }}>
                   <span className="numeral">Mesa 4</span>
                 </p>
-                <hr className="ticket-corte" />
+                <hr className="comanda-corte" />
                 <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
-                  <li className="ticket-linha">
+                  <li className="comanda-linha">
                     <span>
                       <b>2×</b> Parmegiana de frango
                     </span>
@@ -88,8 +90,8 @@ export function Inicio() {
                     <b>3×</b> Guaraná lata
                   </li>
                 </ul>
-                <hr className="ticket-corte" />
-                <div className="ticket-linha" style={{ fontWeight: 800 }}>
+                <hr className="comanda-corte" />
+                <div className="comanda-linha" style={{ fontWeight: 800 }}>
                   <span>Garçom: Rafa</span>
                   <span className="num">{reais(11680)}</span>
                 </div>
@@ -138,7 +140,7 @@ export function Inicio() {
               </ul>
             </article>
           </div>
-          <p className="lp-nota">Valores provisórios do protótipo. Os preços finais ainda vão ser definidos.</p>
+          <p className="lp-nota">Valores provisórios: os preços finais ainda vão ser definidos.</p>
         </section>
       </div>
 

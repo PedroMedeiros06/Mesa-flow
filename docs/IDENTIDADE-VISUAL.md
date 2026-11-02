@@ -1,6 +1,6 @@
 # MesaFlow: identidade visual (etapa 4)
 
-Status: **aprovado em 2026-11-02**. Os protótipos rodam em `http://localhost:5173/prototipo` (`npm run dev:frontend`). Eles são descartáveis: depois de aprovados, viram componentes de verdade em `frontend/src/ui/`. Os tokens já estão no `frontend/src/index.css`.
+Status: **aprovado em 2026-11-02**. Os protótipos viraram os componentes de `frontend/src/ui/` (botão, campo, código do restaurante, comanda, etiqueta, aviso, diálogo) e a casca do painel em `frontend/src/features/painel/`. Os tokens ficam em `frontend/src/index.css`.
 
 ## Ideia central: a comanda
 

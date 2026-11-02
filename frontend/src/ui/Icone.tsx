@@ -1,4 +1,4 @@
-// Ícones de traço simples, 24x24. Só o necessário para os protótipos.
+// Ícones de traço simples, 24x24, desenhados para o MesaFlow.
 const caminhos = {
   check: "M5 12.5l4.5 4.5L19 7.5",
   relogio: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
@@ -19,6 +19,11 @@ const caminhos = {
   impressora: "M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z",
   busca: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
   whatsapp: "M4 20l1.3-3.9A8 8 0 1 1 8 19zM9 9.5c.3 2.5 2.4 4.6 5 5l1.2-1.2 2 1-.5 1.5c-4.5.5-8.6-3.6-8.1-8.1L10 7.2l1 2z",
+  sair: "M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10",
+  grade: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+  cadeado: "M6 11h12v10H6zM8.5 11V7.5a3.5 3.5 0 0 1 7 0V11",
+  loja: "M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6",
+  cobranca: "M3 6h18v12H3zM3 10h18M7 15h4",
 } as const;
 
 export type NomeIcone = keyof typeof caminhos;

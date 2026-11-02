@@ -1,6 +1,5 @@
 import { healthResponseSchema, type HealthResponse } from "@mesaflow/shared";
-
-const API_URL = import.meta.env.VITE_API_URL ?? "/api";
+import { API_URL } from "./http";
 
 export async function fetchHealth(fetcher: typeof fetch = fetch): Promise<HealthResponse> {
   let res: Response;

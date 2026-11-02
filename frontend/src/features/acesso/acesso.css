@@ -1,0 +1,82 @@
+/* Telas de acesso: entrar, admin, recuperar senha */
+.entrar {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.entrar-form {
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+}
+.entrar-form form {
+  margin: auto;
+  width: 100%;
+  max-width: 400px;
+  display: grid;
+  gap: 20px;
+}
+.entrar-form h1 {
+  font-size: var(--t-4xl);
+  font-stretch: 82%;
+  font-weight: 800;
+}
+.entrar-link {
+  color: var(--laranja-texto);
+  font-weight: 700;
+}
+.entrar-lado {
+  background: var(--trilho);
+  color: var(--trilho-texto);
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 36px;
+}
+.entrar-lado blockquote {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-size: var(--t-3xl);
+  font-stretch: 85%;
+  font-weight: 700;
+  line-height: 1.05;
+  max-width: 16ch;
+}
+.entrar-lado .comanda {
+  /* comanda sempre em papel claro, para acender no lado escuro */
+  --papel: #fffbf3;
+  --tinta: #1b130c;
+  --tinta-2: #6a5541;
+  --linha: #e3cfad;
+  --contorno-papel: transparent;
+  max-width: 300px;
+  transform: rotate(-3deg);
+}
+.entrar-lado .numeral {
+  font-size: 4rem;
+}
+
+@media (max-width: 900px) {
+  .entrar {
+    grid-template-columns: 1fr;
+  }
+  .entrar-lado {
+    display: none;
+  }
+}
+.entrar-unica {
+  grid-template-columns: 1fr;
+}
+.entrar-caixa {
+  margin: auto;
+  width: 100%;
+  max-width: 400px;
+  display: grid;
+  gap: 20px;
+}
+.entrar-caixa h1 {
+  font-size: var(--t-4xl);
+  font-stretch: 82%;
+  font-weight: 800;
+}
