@@ -8,13 +8,18 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "dev": "tsc -p tsconfig.build.json && concurrently -k -n tsc,api \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch --env-file-if-exists=../.env dist/main.js\"",
-    "start": "node --env-file-if-exists=../.env dist/main.js"
+    "start": "node --env-file-if-exists=../.env dist/main.js",
+    "db:ping": "node --env-file=../.env scripts/db-ping.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@mesaflow/shared": "^0.1.0",
     "@nestjs/common": "^12.3.2",
     "@nestjs/core": "^12.3.2",
     "@nestjs/platform-express": "^12.3.2",
+    "drizzle-orm": "^0.45.4",
+    "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
@@ -23,6 +28,7 @@
     "@types/node": "^24.19.2",
     "@types/supertest": "^7.2.1",
     "concurrently": "^10.0.6",
+    "drizzle-kit": "^0.31.11",
     "supertest": "^7.3.1"
   }
 }

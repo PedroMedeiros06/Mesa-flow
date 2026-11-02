@@ -8,7 +8,7 @@ Documento de partida do repositório novo. O código é escrito do zero; o proje
 
 - Um repositório só, com `frontend/`, `backend/` e `shared/`.
 - Frontend: React + Vite + TypeScript.
-- Visual: **mudança total**, criado do zero com as skills de design numa etapa própria (etapa 4). Nada do visual antigo é herdado automaticamente.
+- Visual: **mudança total**, criado do zero com as skills de design numa etapa própria (etapa 4). Nada do visual antigo é herdado automaticamente. Paleta obrigatória, sempre quente: creme no tema claro, preto no tema escuro, laranja, amarelo-alaranjado e vermelho-alaranjado. Nada de cores frias na marca.
 - Backend: NestJS + TypeScript, acesso ao Postgres com **Drizzle** e transações nas operações de pedido, estoque e pagamento.
 - Banco e login: o mesmo projeto Supabase de hoje. O login usa o Supabase Auth. O schema será recriado do zero; **apagar as tabelas antigas só depois de autorização explícita**.
 - Migrações versionadas no repositório desde o primeiro commit.

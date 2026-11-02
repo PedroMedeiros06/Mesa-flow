@@ -7,7 +7,13 @@ const resposta = (body: unknown, status = 200) =>
 describe("fetchHealth", () => {
   it("devolve a resposta validada", async () => {
     const health = await fetchHealth(
-      resposta({ status: "ok", service: "mesaflow-api", version: "0.1.0", time: new Date().toISOString() }),
+      resposta({
+        status: "ok",
+        service: "mesaflow-api",
+        version: "0.1.0",
+        time: new Date().toISOString(),
+        database: "ok",
+      }),
     );
     expect(health.status).toBe("ok");
   });

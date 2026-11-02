@@ -23,6 +23,9 @@ describe("GET /api/health", () => {
 
   it("responde no formato definido em @mesaflow/shared", async () => {
     const res = await request(app.getHttpServer()).get("/api/health").expect(200);
-    expect(healthResponseSchema.parse(res.body).status).toBe("ok");
+    const health = healthResponseSchema.parse(res.body);
+    expect(health.status).toBe("ok");
+    // Os testes rodam sem banco; com DATABASE_URL o valor seria "ok".
+    expect(health.database).toBe(process.env.DATABASE_URL ? "ok" : "not_configured");
   });
 });

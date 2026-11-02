@@ -7,6 +7,12 @@ type Estado =
   | { tipo: "ok"; health: HealthResponse }
   | { tipo: "erro"; mensagem: string };
 
+const BANCO: Record<HealthResponse["database"], string> = {
+  ok: "conectado",
+  down: "sem resposta",
+  not_configured: "não configurado (falta DATABASE_URL no .env)",
+};
+
 // Tela provisória da etapa 1: só prova que front, back e shared conversam.
 export function App() {
   const [estado, setEstado] = useState<Estado>({ tipo: "carregando" });
@@ -46,6 +52,7 @@ export function App() {
               {estado.health.service} v{estado.health.version} · resposta às{" "}
               {new Date(estado.health.time).toLocaleTimeString("pt-BR")}
             </p>
+            <p style={{ margin: "6px 0 0", fontSize: 14 }}>Banco: {BANCO[estado.health.database]}</p>
           </>
         )}
 
