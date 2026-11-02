@@ -52,6 +52,7 @@ export interface Falta {
 }
 
 function estoqueInsuficiente(faltas: Falta[]) {
+  faltas.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const lista = faltas
     .map((f) => `${f.name} (tem ${formatQuantity(f.availableMilli, f.unit)}, precisa de ${formatQuantity(f.neededMilli, f.unit)})`)
     .join(", ");
