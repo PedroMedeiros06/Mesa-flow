@@ -1,29 +1,166 @@
-/* Tokens provisórios da etapa 1. O sistema visual completo entra na etapa 4. */
+/*
+  Tokens do MesaFlow (etapa 4). Paleta sempre quente:
+  creme no tema claro, preto no escuro, laranja, âmbar (amarelo-alaranjado) e brasa (vermelho-alaranjado).
+  Contrastes conferidos em docs/IDENTIDADE-VISUAL.md.
+*/
 :root {
-  --brand: #f27a1a;
-  --brand-ink: #b8530a;
-  --highlight: #ffc21a;
-  --ink: #1c1714;
-  --paper: #f7f6f4;
-  --muted: #6b625c;
-  --success: #1f8a4c;
-  --danger: #c4321f;
+  /* superfícies */
+  --fundo: #fcf3e3;
+  --papel: #fffbf3;
+  --papel-2: #f6e6cb;
+  --linha: #e3cfad;
+  --trilho: #1b130c; /* barra lateral do painel */
+  --trilho-texto: #fcf3e3;
+  --trilho-suave: #bba88e;
+
+  /* texto */
+  --tinta: #1b130c;
+  --tinta-2: #6a5541;
+
+  /* cores da marca usadas como preenchimento */
+  --laranja: #f26a11;
+  --ambar: #ffa51f;
+  --brasa: #ec4a1c;
+  /* texto sobre laranja, âmbar e brasa: sempre escuro, nos dois temas */
+  --sobre-cor: #1b130c;
+
+  /* cores da marca quando a própria cor é o texto */
+  --laranja-texto: #a9440a;
+  --brasa-texto: #b42a0c;
+
+  /* "pronto" e "pago": tinta invertida, sem verde */
+  --feito: #1b130c;
+  --sobre-feito: #fcf3e3;
+
+  --foco: #f26a11;
+  --sombra: 0 1px 0 rgb(27 19 12 / 0.06), 0 10px 24px -14px rgb(27 19 12 / 0.35);
+  --contorno-papel: transparent;
+
+  --fonte-titulo: "Bricolage Grotesque", "Manrope", system-ui, sans-serif;
+  --fonte-texto: "Manrope", system-ui, sans-serif;
+
+  /* escala 1.25 */
+  --t-xs: 0.75rem;
+  --t-sm: 0.875rem;
+  --t-md: 1rem;
+  --t-lg: 1.25rem;
+  --t-xl: 1.5625rem;
+  --t-2xl: 1.953rem;
+  --t-3xl: 2.441rem;
+  --t-4xl: 3.052rem;
+  --t-5xl: 3.815rem;
+  --t-6xl: 4.768rem;
+
+  --raio-sm: 6px;
+  --raio-md: 12px;
+  --raio-lg: 22px;
+
   color-scheme: light;
-  font-family: "Manrope", system-ui, sans-serif;
-  color: var(--ink);
-  background: var(--paper);
+  font-family: var(--fonte-texto);
+  color: var(--tinta);
+  background: var(--fundo);
 }
 
-* {
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fundo: #000000;
+    --papel: #15110d;
+    --papel-2: #221a12;
+    --linha: #3d3024;
+    --trilho: #0c0906;
+    --trilho-texto: #fbebd3;
+    --trilho-suave: #a8957c;
+    --tinta: #fbebd3;
+    --tinta-2: #b8a48a;
+    --laranja: #ff7a26;
+    --ambar: #ffb43d;
+    --brasa: #ff5a30;
+    --laranja-texto: #ff9a55;
+    --brasa-texto: #ff7a55;
+    --feito: #fbebd3;
+    --sobre-feito: #000000;
+    --foco: #ffb43d;
+    --sombra: 0 1px 0 rgb(0 0 0 / 0.5), 0 12px 28px -16px rgb(0 0 0 / 0.9);
+    --contorno-papel: #3d3024;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --fundo: #000000;
+  --papel: #15110d;
+  --papel-2: #221a12;
+  --linha: #3d3024;
+  --trilho: #0c0906;
+  --trilho-texto: #fbebd3;
+  --trilho-suave: #a8957c;
+  --tinta: #fbebd3;
+  --tinta-2: #b8a48a;
+  --laranja: #ff7a26;
+  --ambar: #ffb43d;
+  --brasa: #ff5a30;
+  --laranja-texto: #ff9a55;
+  --brasa-texto: #ff7a55;
+  --feito: #fbebd3;
+  --sobre-feito: #000000;
+  --foco: #ffb43d;
+  --sombra: 0 1px 0 rgb(0 0 0 / 0.5), 0 12px 28px -16px rgb(0 0 0 / 0.9);
+  --contorno-papel: #3d3024;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--paper);
+  background: var(--fundo);
+  color: var(--tinta);
+  font-size: var(--t-md);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-h1 {
-  font-family: "Bricolage Grotesque", "Manrope", sans-serif;
+h1,
+h2,
+h3 {
+  font-family: var(--fonte-titulo);
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
