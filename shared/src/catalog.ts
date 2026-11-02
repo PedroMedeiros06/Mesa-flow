@@ -35,6 +35,8 @@ export const productInputSchema = z.object({
   name: texto(80, "Informe o nome do produto"),
   description: z.string().trim().max(300, "Use no máximo 300 caracteres").default(""),
   priceCents: precoCents,
+  // Preço promocional: quando preenchido, é o que vale na venda (precisa ser menor que o preço).
+  promoPriceCents: precoCents.nullable().default(null),
   active: z.boolean().default(true),
   // A lista enviada substitui a anterior, na ordem em que veio.
   addons: z.array(addonInputSchema).max(MAX_ADDONS, `No máximo ${MAX_ADDONS} adicionais`).default([]),
@@ -44,6 +46,9 @@ export const productInputSchema = z.object({
     .max(50, "No máximo 50 ingredientes")
     .refine((itens) => new Set(itens.map((i) => i.ingredientId)).size === itens.length, "Ingrediente repetido na ficha técnica")
     .optional(),
+}).refine((p) => p.promoPriceCents === null || p.promoPriceCents < p.priceCents, {
+  path: ["promoPriceCents"],
+  message: "O preço promocional precisa ser menor que o preço",
 });
 export type ProductInput = z.input<typeof productInputSchema>;
 
@@ -74,6 +79,7 @@ export const productSchema = z.object({
   name: z.string(),
   description: z.string(),
   priceCents: z.number().int(),
+  promoPriceCents: z.number().int().nullable(),
   active: z.boolean(),
   addons: z.array(addonSchema),
   images: z.array(productImageSchema),

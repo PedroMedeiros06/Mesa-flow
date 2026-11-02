@@ -103,6 +103,7 @@ export class CatalogService {
       name: p.name,
       description: p.description,
       priceCents: p.priceCents,
+      promoPriceCents: p.promoPriceCents,
       active: p.active,
       addons: addons
         .filter((a) => a.productId === p.id)
@@ -223,6 +224,7 @@ export class CatalogService {
           name: data.name,
           description: data.description,
           priceCents: data.priceCents,
+          promoPriceCents: data.promoPriceCents,
           active: data.active,
           position: await this.proximaPosicao(tx, companyId, data.categoryId),
         })
@@ -250,6 +252,7 @@ export class CatalogService {
           name: data.name,
           description: data.description,
           priceCents: data.priceCents,
+          promoPriceCents: data.promoPriceCents,
           active: data.active,
           // Ao trocar de categoria, o produto vai para o fim da nova.
           ...(mudouCategoria ? { position: await this.proximaPosicao(tx, companyId, data.categoryId) } : {}),

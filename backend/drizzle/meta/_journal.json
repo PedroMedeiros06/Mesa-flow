@@ -29,6 +29,13 @@
       "when": 1793656498982,
       "tag": "0003_estoque_nao_negativo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793657428714,
+      "tag": "0004_pedidos",
+      "breakpoints": true
     }
   ]
 }

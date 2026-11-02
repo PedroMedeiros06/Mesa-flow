@@ -4,7 +4,9 @@ import {
   check,
   foreignKey,
   index,
+  date,
   integer,
+  jsonb,
   pgSchema,
   primaryKey,
   text,
@@ -13,7 +15,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { MemberRole, MovementKind, Unit } from "@mesaflow/shared";
+import type { MemberRole, MovementKind, OrderOrigin, OrderStatus, PaymentMethod, Unit } from "@mesaflow/shared";
 
 // O drizzle-kit carrega este arquivo em CommonJS e não enxerga valores do @mesaflow/shared (ESM).
 // Por isso os papéis são repetidos aqui, e o tipo abaixo quebra a compilação se divergirem.
@@ -34,6 +36,16 @@ const _unidadesConferidas: Igual<Unit, (typeof UNITS)[number]> = true;
 const _movimentosConferidos: Igual<MovementKind, (typeof MOVEMENT_KINDS)[number]> = true;
 void _unidadesConferidas;
 void _movimentosConferidos;
+
+const ORDER_STATUSES = ["novo", "preparo", "pronto", "entregue", "cancelado"] as const;
+const ORDER_ORIGINS = ["balcao", "vitrine", "mesa"] as const;
+const PAYMENT_METHODS = ["dinheiro", "pix", "credito", "debito"] as const;
+const _statusConferidos: Igual<OrderStatus, (typeof ORDER_STATUSES)[number]> = true;
+const _origensConferidas: Igual<OrderOrigin, (typeof ORDER_ORIGINS)[number]> = true;
+const _pagamentosConferidos: Igual<PaymentMethod, (typeof PAYMENT_METHODS)[number]> = true;
+void _statusConferidos;
+void _origensConferidas;
+void _pagamentosConferidos;
 
 // Tudo do MesaFlow fica no schema "app", que a API pública do Supabase não expõe.
 // Só o backend acessa estas tabelas, pela conexão direta. RLS fica ligado sem políticas
@@ -155,11 +167,13 @@ export const products = app
       name: text("name").notNull(),
       description: text("description").notNull().default(""),
       priceCents: integer("price_cents").notNull(),
+      promoPriceCents: integer("promo_price_cents"),
       position: integer("position").notNull().default(0),
       active: boolean("active").notNull().default(true),
       ...timestamps,
     },
     (t) => [
+      check("products_promo_below_price", sql`${t.promoPriceCents} is null or ${t.promoPriceCents} between 0 and ${t.priceCents} - 1`),
       unique("products_company_id").on(t.companyId, t.id),
       // Categoria com produto não pode ser apagada (restrict): o dono move ou apaga os produtos antes.
       foreignKey({
@@ -303,6 +317,102 @@ export const stockMovements = app
         foreignColumns: [ingredients.companyId, ingredients.id],
       }).onDelete("cascade"),
       index("stock_movements_ingredient_created").on(t.ingredientId, t.createdAt),
+    ],
+  )
+  .enableRLS();
+
+// ---------- pedidos ----------
+
+export const orderStatus = app.enum("order_status", ORDER_STATUSES);
+export const orderOrigin = app.enum("order_origin", ORDER_ORIGINS);
+export const paymentMethod = app.enum("payment_method", PAYMENT_METHODS);
+
+/** Consumo de estoque congelado na venda: o estorno devolve exatamente isto. */
+export type ConsumoGuardado = { ingredientId: string; quantityMilli: number }[];
+
+// Número do pedido por restaurante e por dia (fuso de São Paulo): a cozinha chama "pedido 12".
+// Incrementado na mesma transação do pedido; se o pedido falhar, o número volta.
+export const orderCounters = app
+  .table(
+    "order_counters",
+    {
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      day: date("day").notNull(),
+      last: integer("last").notNull(),
+    },
+    (t) => [primaryKey({ name: "order_counters_pk", columns: [t.companyId, t.day] })],
+  )
+  .enableRLS();
+
+export const orders = app
+  .table(
+    "orders",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      day: date("day").notNull(),
+      number: integer("number").notNull(),
+      origin: orderOrigin("origin").notNull(),
+      status: orderStatus("status").notNull().default("novo"),
+      customerName: text("customer_name").notNull().default(""),
+      notes: text("notes").notNull().default(""),
+      paymentMethod: paymentMethod("payment_method"),
+      subtotalCents: integer("subtotal_cents").notNull(),
+      discountCents: integer("discount_cents").notNull().default(0),
+      totalCents: integer("total_cents").notNull(),
+      receivedCents: integer("received_cents"),
+      changeCents: integer("change_cents").notNull().default(0),
+      clientRequestId: uuid("client_request_id").notNull(),
+      createdBy: uuid("created_by").references(() => members.id, { onDelete: "set null" }),
+      statusChangedAt: timestamp("status_changed_at", { withTimezone: true }).notNull().defaultNow(),
+      cancelledBy: uuid("cancelled_by").references(() => members.id, { onDelete: "set null" }),
+      cancelReason: text("cancel_reason"),
+      ...timestamps,
+    },
+    (t) => [
+      unique("orders_company_id").on(t.companyId, t.id),
+      unique("orders_company_request").on(t.companyId, t.clientRequestId),
+      unique("orders_company_day_number").on(t.companyId, t.day, t.number),
+      index("orders_company_status").on(t.companyId, t.status),
+      index("orders_company_created").on(t.companyId, t.createdAt),
+      check("orders_totals", sql`${t.subtotalCents} >= 0 and ${t.discountCents} between 0 and ${t.subtotalCents} and ${t.totalCents} = ${t.subtotalCents} - ${t.discountCents}`),
+    ],
+  )
+  .enableRLS();
+
+// Itens com tudo copiado no momento da venda (nome, preço, adicionais): o histórico não muda
+// se o cardápio mudar. O produto pode ser apagado depois; aí product_id vira null.
+export const orderItems = app
+  .table(
+    "order_items",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id").notNull(),
+      orderId: uuid("order_id").notNull(),
+      productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+      position: integer("position").notNull(),
+      name: text("name").notNull(),
+      quantity: integer("quantity").notNull(),
+      unitPriceCents: integer("unit_price_cents").notNull(),
+      addons: jsonb("addons").$type<{ name: string; priceCents: number }[]>().notNull(),
+      removed: jsonb("removed").$type<string[]>().notNull(),
+      notes: text("notes").notNull().default(""),
+      totalCents: integer("total_cents").notNull(),
+      consumption: jsonb("consumption").$type<ConsumoGuardado>().notNull(),
+    },
+    (t) => [
+      foreignKey({
+        name: "order_items_order_fk",
+        columns: [t.companyId, t.orderId],
+        foreignColumns: [orders.companyId, orders.id],
+      }).onDelete("cascade"),
+      index("order_items_order").on(t.orderId),
+      index("order_items_product").on(t.productId),
+      check("order_items_quantity", sql`${t.quantity} between 1 and 99`),
     ],
   )
   .enableRLS();

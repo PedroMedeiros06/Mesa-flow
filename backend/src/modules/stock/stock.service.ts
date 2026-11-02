@@ -310,7 +310,11 @@ export class StockService {
           .select({ name: ingredients.name, unit: ingredients.unit, stockMilli: ingredients.stockMilli })
           .from(ingredients)
           .where(onde);
-        if (!existe) throw naoEncontrado();
+        if (!existe) {
+          // Ingrediente apagado depois da venda: não tem para onde devolver, e o cancelamento segue.
+          if (kind === "estorno") continue;
+          throw naoEncontrado();
+        }
         faltas.push({
           ingredientId: d.ingredientId,
           name: existe.name,

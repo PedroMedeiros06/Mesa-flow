@@ -5,6 +5,7 @@ export const PERMISSIONS = {
   "orders.create": { group: "Pedidos", label: "Lançar pedidos no balcão" },
   "orders.change_status": { group: "Pedidos", label: "Avançar o status dos pedidos" },
   "orders.cancel": { group: "Pedidos", label: "Cancelar pedidos e itens" },
+  "orders.discount": { group: "Pedidos", label: "Dar desconto no pedido" },
 
   "tabs.view": { group: "Mesas", label: "Ver mesas e comandas" },
   "tabs.open": { group: "Mesas", label: "Abrir comandas e lançar rodadas" },
