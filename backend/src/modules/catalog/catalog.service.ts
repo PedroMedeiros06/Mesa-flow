@@ -7,17 +7,25 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
-import { and, asc, count, eq, max } from "drizzle-orm";
+import { and, asc, count, eq, inArray, max } from "drizzle-orm";
 import {
   MAX_PRODUCT_IMAGES,
   type Catalog,
+  type IngredientOption,
   type categoryInputSchema,
   type Product,
   type productInputSchema,
 } from "@mesaflow/shared";
 import type { z } from "zod";
 import { DB, type Database, type Transaction } from "../../db/database.module.js";
-import { categories, productAddons, productImages, products } from "../../db/schema.js";
+import {
+  categories,
+  ingredients,
+  productAddons,
+  productImages,
+  productIngredients,
+  products,
+} from "../../db/schema.js";
 import { detectImageType, StorageClient } from "../../storage/storage.client.js";
 
 type CategoryData = z.output<typeof categoryInputSchema>;
@@ -51,13 +59,14 @@ export class CatalogService {
 
   async catalog(companyId: string): Promise<Catalog> {
     const db = this.conn;
-    const [cats, prods, addons, imgs] = await Promise.all([
+    const [cats, prods, addons, imgs, receita] = await Promise.all([
       db.select().from(categories).where(eq(categories.companyId, companyId)).orderBy(asc(categories.position), asc(categories.name)),
       db.select().from(products).where(eq(products.companyId, companyId)).orderBy(asc(products.position), asc(products.name)),
       db.select().from(productAddons).where(eq(productAddons.companyId, companyId)).orderBy(asc(productAddons.position)),
       db.select().from(productImages).where(eq(productImages.companyId, companyId)).orderBy(asc(productImages.position), asc(productImages.createdAt)),
+      this.receitas(db, companyId),
     ]);
-    const montados = this.montarProdutos(prods, addons, imgs);
+    const montados = this.montarProdutos(prods, addons, imgs, receita);
     return {
       categories: cats.map((c) => ({
         id: c.id,
@@ -74,17 +83,19 @@ export class CatalogService {
       .from(products)
       .where(and(eq(products.companyId, companyId), eq(products.id, productId)));
     if (!prod) throw naoEncontrado("Produto");
-    const [addons, imgs] = await Promise.all([
+    const [addons, imgs, receita] = await Promise.all([
       db.select().from(productAddons).where(and(eq(productAddons.companyId, companyId), eq(productAddons.productId, productId))).orderBy(asc(productAddons.position)),
       db.select().from(productImages).where(and(eq(productImages.companyId, companyId), eq(productImages.productId, productId))).orderBy(asc(productImages.position), asc(productImages.createdAt)),
+      this.receitas(db, companyId, productId),
     ]);
-    return this.montarProdutos([prod], addons, imgs)[0]!;
+    return this.montarProdutos([prod], addons, imgs, receita)[0]!;
   }
 
   private montarProdutos(
     prods: (typeof products.$inferSelect)[],
     addons: (typeof productAddons.$inferSelect)[],
     imgs: (typeof productImages.$inferSelect)[],
+    receita: Awaited<ReturnType<CatalogService["receitas"]>>,
   ): Product[] {
     return prods.map((p) => ({
       id: p.id,
@@ -97,7 +108,41 @@ export class CatalogService {
         .filter((a) => a.productId === p.id)
         .map((a) => ({ id: a.id, name: a.name, priceCents: a.priceCents, active: a.active })),
       images: imgs.filter((i) => i.productId === p.id).map((i) => ({ id: i.id, url: this.storage.publicUrl(i.path) })),
+      recipe: receita
+        .filter((r) => r.productId === p.id)
+        .map(({ ingredientId, name, unit, quantityMilli, removable }) => ({ ingredientId, name, unit, quantityMilli, removable })),
     }));
+  }
+
+  /** Ficha técnica com nome e unidade do ingrediente. */
+  private receitas(db: Database | Transaction, companyId: string, productId?: string) {
+    return db
+      .select({
+        productId: productIngredients.productId,
+        ingredientId: productIngredients.ingredientId,
+        name: ingredients.name,
+        unit: ingredients.unit,
+        quantityMilli: productIngredients.quantityMilli,
+        removable: productIngredients.removable,
+      })
+      .from(productIngredients)
+      .innerJoin(ingredients, eq(ingredients.id, productIngredients.ingredientId))
+      .where(
+        and(
+          eq(productIngredients.companyId, companyId),
+          productId ? eq(productIngredients.productId, productId) : undefined,
+        ),
+      )
+      .orderBy(asc(productIngredients.position));
+  }
+
+  /** Ingredientes para montar a ficha técnica (só nome e unidade). */
+  async ingredientOptions(companyId: string): Promise<IngredientOption[]> {
+    return this.conn
+      .select({ id: ingredients.id, name: ingredients.name, unit: ingredients.unit })
+      .from(ingredients)
+      .where(eq(ingredients.companyId, companyId))
+      .orderBy(asc(ingredients.name));
   }
 
   // ---------- categorias ----------
@@ -183,6 +228,7 @@ export class CatalogService {
         })
         .returning({ id: products.id });
       await this.gravarAdicionais(tx, companyId, prod!.id, data.addons);
+      if (data.recipe) await this.gravarReceita(tx, companyId, prod!.id, data.recipe);
       return this.product(companyId, prod!.id, tx);
     });
   }
@@ -213,6 +259,12 @@ export class CatalogService {
         .delete(productAddons)
         .where(and(eq(productAddons.companyId, companyId), eq(productAddons.productId, id)));
       await this.gravarAdicionais(tx, companyId, id, data.addons);
+      if (data.recipe) {
+        await tx
+          .delete(productIngredients)
+          .where(and(eq(productIngredients.companyId, companyId), eq(productIngredients.productId, id)));
+        await this.gravarReceita(tx, companyId, id, data.recipe);
+      }
       return this.product(companyId, id, tx);
     });
   }
@@ -333,6 +385,37 @@ export class CatalogService {
         name: a.name,
         priceCents: a.priceCents,
         active: a.active,
+        position,
+      })),
+    );
+  }
+
+  private async gravarReceita(
+    tx: Transaction,
+    companyId: string,
+    productId: string,
+    receita: NonNullable<ProductData["recipe"]>,
+  ) {
+    if (!receita.length) return;
+    const ids = receita.map((r) => r.ingredientId);
+    const meus = await tx
+      .select({ id: ingredients.id })
+      .from(ingredients)
+      .where(and(eq(ingredients.companyId, companyId), inArray(ingredients.id, ids)));
+    if (meus.length !== new Set(ids).size) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: "Dados inválidos",
+        issues: [{ path: "recipe", message: "Ingrediente não encontrado. Recarregue a página." }],
+      });
+    }
+    await tx.insert(productIngredients).values(
+      receita.map((r, position) => ({
+        companyId,
+        productId,
+        ingredientId: r.ingredientId,
+        quantityMilli: r.quantityMilli,
+        removable: r.removable,
         position,
       })),
     );

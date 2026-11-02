@@ -1,6 +1,19 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, foreignKey, index, integer, pgSchema, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import type { MemberRole } from "@mesaflow/shared";
+import {
+  boolean,
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgSchema,
+  primaryKey,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+import type { MemberRole, MovementKind, Unit } from "@mesaflow/shared";
 
 // O drizzle-kit carrega este arquivo em CommonJS e não enxerga valores do @mesaflow/shared (ESM).
 // Por isso os papéis são repetidos aqui, e o tipo abaixo quebra a compilação se divergirem.
@@ -12,6 +25,15 @@ type _MesmosPapeis = [MemberRole] extends [(typeof MEMBER_ROLES)[number]]
   : never;
 const _papeisConferidos: _MesmosPapeis = true;
 void _papeisConferidos;
+
+// Mesma ideia para unidades e tipos de movimento do estoque.
+const UNITS = ["un", "kg", "g", "l", "ml"] as const;
+const MOVEMENT_KINDS = ["entrada", "perda", "contagem", "venda", "estorno"] as const;
+type Igual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+const _unidadesConferidas: Igual<Unit, (typeof UNITS)[number]> = true;
+const _movimentosConferidos: Igual<MovementKind, (typeof MOVEMENT_KINDS)[number]> = true;
+void _unidadesConferidas;
+void _movimentosConferidos;
 
 // Tudo do MesaFlow fica no schema "app", que a API pública do Supabase não expõe.
 // Só o backend acessa estas tabelas, pela conexão direta. RLS fica ligado sem políticas
@@ -195,6 +217,91 @@ export const productImages = app
         foreignColumns: [products.companyId, products.id],
       }).onDelete("cascade"),
       index("product_images_product").on(t.productId),
+    ],
+  )
+  .enableRLS();
+
+// ---------- estoque ----------
+// Quantidades em milésimos da unidade do ingrediente (inteiro): 0,25 kg = 250.
+
+export const ingredientUnit = app.enum("ingredient_unit", UNITS);
+export const movementKind = app.enum("stock_movement_kind", MOVEMENT_KINDS);
+
+export const ingredients = app
+  .table(
+    "ingredients",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      name: text("name").notNull(),
+      unit: ingredientUnit("unit").notNull(),
+      // Pode ficar negativo: a venda não trava por estoque desatualizado; a tela avisa.
+      stockMilli: integer("stock_milli").notNull().default(0),
+      minStockMilli: integer("min_stock_milli"),
+      ...timestamps,
+    },
+    (t) => [
+      unique("ingredients_company_id").on(t.companyId, t.id),
+      uniqueIndex("ingredients_company_name").on(t.companyId, sql`lower(${t.name})`),
+    ],
+  )
+  .enableRLS();
+
+// Ficha técnica: quanto de cada ingrediente sai a cada unidade vendida do produto.
+export const productIngredients = app
+  .table(
+    "product_ingredients",
+    {
+      companyId: uuid("company_id").notNull(),
+      productId: uuid("product_id").notNull(),
+      ingredientId: uuid("ingredient_id").notNull(),
+      quantityMilli: integer("quantity_milli").notNull(),
+      removable: boolean("removable").notNull().default(false),
+      position: integer("position").notNull().default(0),
+    },
+    (t) => [
+      primaryKey({ name: "product_ingredients_pk", columns: [t.productId, t.ingredientId] }),
+      foreignKey({
+        name: "product_ingredients_product_fk",
+        columns: [t.companyId, t.productId],
+        foreignColumns: [products.companyId, products.id],
+      }).onDelete("cascade"),
+      // Ingrediente usado em ficha técnica não pode ser apagado.
+      foreignKey({
+        name: "product_ingredients_ingredient_fk",
+        columns: [t.companyId, t.ingredientId],
+        foreignColumns: [ingredients.companyId, ingredients.id],
+      }).onDelete("restrict"),
+      index("product_ingredients_ingredient").on(t.ingredientId),
+      check("product_ingredients_quantity", sql`${t.quantityMilli} > 0`),
+    ],
+  )
+  .enableRLS();
+
+// Histórico de tudo que entrou e saiu. Só recebe inserções.
+export const stockMovements = app
+  .table(
+    "stock_movements",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id").notNull(),
+      ingredientId: uuid("ingredient_id").notNull(),
+      kind: movementKind("kind").notNull(),
+      deltaMilli: integer("delta_milli").notNull(),
+      balanceAfterMilli: integer("balance_after_milli").notNull(),
+      reason: text("reason").notNull().default(""),
+      memberId: uuid("member_id").references(() => members.id, { onDelete: "set null" }),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    },
+    (t) => [
+      foreignKey({
+        name: "stock_movements_ingredient_fk",
+        columns: [t.companyId, t.ingredientId],
+        foreignColumns: [ingredients.companyId, ingredients.id],
+      }).onDelete("cascade"),
+      index("stock_movements_ingredient_created").on(t.ingredientId, t.createdAt),
     ],
   )
   .enableRLS();

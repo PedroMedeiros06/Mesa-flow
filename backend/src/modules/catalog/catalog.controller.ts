@@ -59,6 +59,12 @@ export class CatalogController {
     return this.catalog.catalog(m.company.id);
   }
 
+  @Get("ingredient-options")
+  @RequirePermission("catalog.manage")
+  ingredientOptions(@CurrentMember() m: MemberProfile) {
+    return this.catalog.ingredientOptions(m.company.id);
+  }
+
   // ---------- categorias ----------
 
   @Post("categories")

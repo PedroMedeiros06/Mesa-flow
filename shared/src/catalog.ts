@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_CENTS } from "./money.js";
+import { recipeItemInputSchema, recipeItemSchema } from "./stock.js";
 
 const texto = (max: number, mensagem: string) =>
   z.string().trim().min(1, mensagem).max(max, `Use no máximo ${max} caracteres`);
@@ -37,6 +38,12 @@ export const productInputSchema = z.object({
   active: z.boolean().default(true),
   // A lista enviada substitui a anterior, na ordem em que veio.
   addons: z.array(addonInputSchema).max(MAX_ADDONS, `No máximo ${MAX_ADDONS} adicionais`).default([]),
+  // Ficha técnica. Ausente = mantém a atual; lista (mesmo vazia) = substitui.
+  recipe: z
+    .array(recipeItemInputSchema)
+    .max(50, "No máximo 50 ingredientes")
+    .refine((itens) => new Set(itens.map((i) => i.ingredientId)).size === itens.length, "Ingrediente repetido na ficha técnica")
+    .optional(),
 });
 export type ProductInput = z.input<typeof productInputSchema>;
 
@@ -70,6 +77,7 @@ export const productSchema = z.object({
   active: z.boolean(),
   addons: z.array(addonSchema),
   images: z.array(productImageSchema),
+  recipe: z.array(recipeItemSchema),
 });
 export type Product = z.infer<typeof productSchema>;
 
