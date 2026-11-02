@@ -24,6 +24,11 @@ const caminhos = {
   cadeado: "M6 11h12v10H6zM8.5 11V7.5a3.5 3.5 0 0 1 7 0V11",
   loja: "M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6",
   cobranca: "M3 6h18v12H3zM3 10h18M7 15h4",
+  fechar: "M6 6l12 12M18 6L6 18",
+  cima: "M12 19V5M6 11l6-6 6 6",
+  baixo: "M12 5v14M6 13l6 6 6-6",
+  lapis: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+  foto: "M4 6h3l2-2h6l2 2h3v13H4zM12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
 } as const;
 
 export type NomeIcone = keyof typeof caminhos;

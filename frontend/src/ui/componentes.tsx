@@ -5,6 +5,8 @@ import {
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from "react";
 import { Link } from "react-router";
 import { Icone, type NomeIcone } from "./Icone";
@@ -92,6 +94,84 @@ export function Campo({ rotulo, ajuda, erro, id, ...resto }: CampoProps) {
           {erro}
         </span>
       )}
+    </div>
+  );
+}
+
+function descricaoDe(id: string, ajuda?: ReactNode, erro?: string) {
+  return [ajuda && `${id}-ajuda`, erro && `${id}-erro`].filter(Boolean).join(" ") || undefined;
+}
+
+function Rodape({ id, ajuda, erro }: { id: string; ajuda?: ReactNode; erro?: string }) {
+  return (
+    <>
+      {ajuda && (
+        <span className="campo-ajuda" id={`${id}-ajuda`}>
+          {ajuda}
+        </span>
+      )}
+      {erro && (
+        <span className="campo-erro" id={`${id}-erro`}>
+          {erro}
+        </span>
+      )}
+    </>
+  );
+}
+
+export function CampoArea({
+  rotulo,
+  ajuda,
+  erro,
+  ...resto
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { rotulo: string; ajuda?: ReactNode; erro?: string }) {
+  const id = useId();
+  return (
+    <div className="campo">
+      <label htmlFor={id}>{rotulo}</label>
+      <textarea id={id} aria-invalid={erro ? true : undefined} aria-describedby={descricaoDe(id, ajuda, erro)} {...resto} />
+      <Rodape id={id} ajuda={ajuda} erro={erro} />
+    </div>
+  );
+}
+
+export function Seletor({
+  rotulo,
+  ajuda,
+  erro,
+  children,
+  ...resto
+}: SelectHTMLAttributes<HTMLSelectElement> & { rotulo: string; ajuda?: ReactNode; erro?: string }) {
+  const id = useId();
+  return (
+    <div className="campo">
+      <label htmlFor={id}>{rotulo}</label>
+      <select id={id} aria-invalid={erro ? true : undefined} aria-describedby={descricaoDe(id, ajuda, erro)} {...resto}>
+        {children}
+      </select>
+      <Rodape id={id} ajuda={ajuda} erro={erro} />
+    </div>
+  );
+}
+
+/** Caixa de marcar com o texto clicável ao lado. */
+export function Marcador({
+  rotulo,
+  ajuda,
+  ...resto
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & { rotulo: string; ajuda?: ReactNode }) {
+  const id = useId();
+  return (
+    <div className="marcador">
+      <input id={id} type="checkbox" aria-describedby={ajuda ? `${id}-ajuda` : undefined} {...resto} />
+      <label htmlFor={id}>
+        {rotulo}
+        {ajuda && (
+          <span className="campo-ajuda" id={`${id}-ajuda`}>
+            {ajuda}
+          </span>
+        )}
+      </label>
     </div>
   );
 }
@@ -200,7 +280,9 @@ export function Dialogo({
   titulo,
   children,
   acoes,
+  largo,
 }: {
+  largo?: boolean;
   aberto: boolean;
   aoFechar: () => void;
   titulo: string;
@@ -220,7 +302,7 @@ export function Dialogo({
   return (
     <dialog
       ref={ref}
-      className="dialogo"
+      className={`dialogo ${largo ? "dialogo-largo" : ""}`}
       aria-labelledby={idTitulo}
       onClose={aoFechar}
       onClick={(e) => {

@@ -314,3 +314,46 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ---------- área de texto, seletor e marcador ---------- */
+.campo textarea {
+  min-height: 88px;
+  border-radius: var(--raio-md);
+  border: 2px solid var(--linha);
+  background: var(--papel);
+  padding: 10px 14px;
+  width: 100%;
+  resize: vertical;
+}
+.campo textarea:focus-visible {
+  outline: none;
+  border-color: var(--laranja);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--laranja) 30%, transparent);
+}
+.marcador {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.marcador input {
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  accent-color: var(--laranja);
+  flex: none;
+}
+.marcador label {
+  display: grid;
+  gap: 2px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.marcador .campo-ajuda {
+  font-weight: 500;
+}
+.dialogo-largo {
+  width: min(680px, calc(100vw - 32px));
+}
+.dialogo {
+  max-height: calc(100dvh - 32px);
+}

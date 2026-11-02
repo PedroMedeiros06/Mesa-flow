@@ -1,0 +1,243 @@
+/* Tela /app/cardapio */
+.recado {
+  min-height: 28px;
+  margin: -16px 0 12px;
+}
+.cardapio {
+  display: grid;
+  gap: 32px;
+  max-width: 920px;
+}
+.cat-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--tinta);
+}
+.cat-cab h2 {
+  font-size: var(--t-2xl);
+  font-stretch: 85%;
+  font-weight: 800;
+}
+.cat-cab .num {
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: var(--t-xl);
+}
+.cat-acoes {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.cat-vazia {
+  padding: 16px 0;
+}
+.prods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.prods li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px dashed var(--linha);
+}
+.prod {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--raio-md);
+}
+.prod:hover {
+  background: var(--papel);
+}
+.prod-foto {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--raio-md);
+  background: var(--papel-2);
+  color: var(--tinta-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.prod-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.prod-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.prod-texto > .suave {
+  font-size: var(--t-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prod-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: var(--t-sm);
+}
+.prod-preco {
+  font-weight: 800;
+  font-size: var(--t-lg);
+}
+.prod-inativo .prod-texto strong,
+.prod-inativo .prod-preco {
+  color: var(--tinta-2);
+}
+.prod-ordem {
+  display: grid;
+}
+.icone-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--raio-md);
+  background: transparent;
+  color: var(--tinta);
+  cursor: pointer;
+}
+.icone-btn:hover:not(:disabled) {
+  background: var(--papel-2);
+}
+.icone-btn:disabled {
+  color: var(--linha);
+  cursor: default;
+}
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--laranja-texto);
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- editor de produto ---------- */
+.editor-produto {
+  display: grid;
+  gap: 16px;
+}
+.editor-grade {
+  display: grid;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 180px);
+  gap: 16px;
+}
+.editor-bloco {
+  border: 2px dashed var(--linha);
+  border-radius: var(--raio-md);
+  padding: 14px;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.editor-bloco > .btn {
+  justify-self: start;
+}
+.editor-bloco legend {
+  font-weight: 800;
+  padding: 0 6px;
+}
+.adicional {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 40px;
+  gap: 10px;
+  align-items: end;
+}
+.adicional .icone-btn {
+  margin-bottom: 4px;
+}
+.fotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.fotos figure {
+  margin: 0;
+  position: relative;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--raio-md);
+  overflow: hidden;
+  background: var(--papel-2);
+}
+.fotos img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fotos figure .icone-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  background: var(--papel);
+  box-shadow: var(--sombra);
+}
+.foto-nova {
+  width: 104px;
+  height: 104px;
+  border: 2px dashed var(--linha);
+  border-radius: var(--raio-md);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  font-size: var(--t-sm);
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+.foto-nova:focus-within {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .cat-acoes {
+    margin-left: 0;
+    width: 100%;
+  }
+  .prod {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+  .prod-foto {
+    width: 52px;
+    height: 52px;
+  }
+  .prod-preco {
+    grid-column: 2;
+    font-size: var(--t-md);
+  }
+  .editor-grade {
+    grid-template-columns: 1fr;
+  }
+  .adicional {
+    grid-template-columns: minmax(0, 1fr) 96px 40px;
+  }
+}

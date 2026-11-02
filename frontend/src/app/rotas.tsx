@@ -1,6 +1,7 @@
 import { createBrowserRouter, Link, type RouteObject } from "react-router";
 import { Entrar } from "@/features/acesso/Entrar";
 import { EntrarAdmin } from "@/features/acesso/EntrarAdmin";
+import { Cardapio } from "@/features/cardapio/Cardapio";
 import { EsqueciSenha } from "@/features/acesso/EsqueciSenha";
 import { PainelAdmin } from "@/features/admin/PainelAdmin";
 import { MENU_PAINEL } from "@/features/painel/menu";
@@ -31,11 +32,16 @@ function LojaEmBreve() {
   );
 }
 
+// Telas prontas; as demais mostram "em construção" até a etapa delas.
+const TELAS: Record<string, React.ReactNode> = {
+  cardapio: <Cardapio />,
+};
+
 const telasRestaurante: RouteObject[] = MENU_PAINEL.filter((item) => item.caminho !== "/app").map((item) => ({
   path: item.caminho.replace("/app/", ""),
   element: (
     <RequerPermissao permissao={item.permissao}>
-      <EmBreve titulo={item.nome} etapa={item.etapa} />
+      {TELAS[item.id] ?? <EmBreve titulo={item.nome} etapa={item.etapa} />}
     </RequerPermissao>
   ),
 }));
