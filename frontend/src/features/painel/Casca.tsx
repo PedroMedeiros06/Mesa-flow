@@ -12,23 +12,30 @@ export interface ItemCasca {
   caminho: string;
 }
 
-const NOMES_TEMA: Record<Tema, string> = { sistema: "Automático", light: "Claro", dark: "Escuro" };
+const TEMAS: { tema: Tema; nome: string; icone: NomeIcone }[] = [
+  { tema: "sistema", nome: "Auto", icone: "automatico" },
+  { tema: "light", nome: "Claro", icone: "sol" },
+  { tema: "dark", nome: "Escuro", icone: "lua" },
+];
 
-function SeletorTema({ id }: { id: string }) {
+/** Três botões em vez de um select: o tema atual fica à vista e troca com um toque. */
+function SeletorTema() {
   const [tema, setTema] = useTema();
   return (
-    <>
-      <label htmlFor={id} className="so-leitor">
-        Tema
-      </label>
-      <select id={id} value={tema} onChange={(e) => setTema(e.target.value as Tema)}>
-        {(Object.keys(NOMES_TEMA) as Tema[]).map((t) => (
-          <option key={t} value={t}>
-            {NOMES_TEMA[t]}
-          </option>
-        ))}
-      </select>
-    </>
+    <div className="tema-seg" role="group" aria-label="Tema">
+      {TEMAS.map((t) => (
+        <button
+          key={t.tema}
+          type="button"
+          aria-pressed={tema === t.tema}
+          title={t.tema === "sistema" ? "Segue o tema do aparelho" : undefined}
+          onClick={() => setTema(t.tema)}
+        >
+          <Icone nome={t.icone} tamanho={15} />
+          {t.nome}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -78,17 +85,19 @@ export function Casca({
           ))}
         </nav>
         <div className="trilho-pe">
-          <span>
-            <strong>{pessoa.nome}</strong>
-            {pessoa.papel}
-          </span>
-          <div className="trilho-acoes">
-            <SeletorTema id="tema-trilho" />
-            <button type="button" onClick={() => setConfirmarSaida(true)}>
-              <Icone nome="sair" tamanho={16} />
-              Sair
+          <div className="trilho-pessoa">
+            <span className="avatar" aria-hidden="true">
+              {pessoa.nome.trim().charAt(0).toUpperCase()}
+            </span>
+            <span className="trilho-pessoa-nome">
+              <strong>{pessoa.nome}</strong>
+              {pessoa.papel}
+            </span>
+            <button type="button" className="trilho-sair" onClick={() => setConfirmarSaida(true)} aria-label="Sair" title="Sair">
+              <Icone nome="sair" tamanho={18} />
             </button>
           </div>
+          <SeletorTema />
         </div>
       </aside>
 
@@ -136,13 +145,10 @@ export function Casca({
             </li>
           ))}
           <li>
-            <span className="lista-mais-tema" style={{ display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
-              <Icone nome="ajustes" />
+            <div className="lista-mais-tema">
               <strong>Tema</strong>
-              <span style={{ marginLeft: "auto" }}>
-                <SeletorTema id="tema-mais" />
-              </span>
-            </span>
+              <SeletorTema />
+            </div>
           </li>
           <li>
             <button

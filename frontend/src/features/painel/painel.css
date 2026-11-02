@@ -88,45 +88,93 @@
   display: none;
 }
 
+/* Rodapé do trilho: quem está logado, sair e tema. O picote separa do menu, como o corte da comanda. */
 .trilho-pe {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 2px dashed color-mix(in oklab, var(--trilho-suave) 35%, transparent);
+}
+.trilho-pessoa {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
   gap: 10px;
 }
-.trilho-pe strong {
-  color: var(--trilho-texto);
-  display: block;
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ambar);
+  color: var(--sobre-cor);
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: var(--t-base);
 }
-.trilho-pe > span {
-  line-height: 1.35;
-}
-.trilho-acoes {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.trilho-acoes select,
-.trilho-acoes button {
-  min-height: 36px;
-  border-radius: var(--raio-md);
-  border: 1px solid color-mix(in oklab, var(--trilho-suave) 50%, transparent);
-  background: transparent;
-  color: var(--trilho-texto);
-  padding: 0 10px;
-  font-size: var(--t-sm);
-  cursor: pointer;
-}
-.trilho-acoes select {
-  flex: 1;
+.trilho-pessoa-nome {
+  line-height: 1.3;
   min-width: 0;
 }
-.trilho-acoes select option {
-  color: #1b130c;
+.trilho-pessoa-nome strong {
+  display: block;
+  color: var(--trilho-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.trilho-acoes button {
+.trilho-sair {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--raio-md);
+  background: transparent;
+  color: var(--trilho-suave);
+  cursor: pointer;
+}
+.trilho-sair:hover {
+  background: color-mix(in oklab, var(--brasa) 22%, transparent);
+  color: var(--trilho-texto);
+}
+
+/* Seletor de tema em três botões; usa currentColor para servir no trilho escuro e no diálogo claro. */
+.tema-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--raio-md);
+  background: color-mix(in oklab, currentColor 10%, transparent);
+}
+.tema-seg button {
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: calc(var(--raio-md) - 3px);
+  background: transparent;
+  color: inherit;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+.tema-seg button:hover {
+  background: color-mix(in oklab, currentColor 10%, transparent);
+}
+.tema-seg button[aria-pressed="true"] {
+  background: var(--laranja);
+  color: var(--sobre-cor);
+}
+.lista-mais-tema {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
 }
 .vazio {
   max-width: 560px;
