@@ -1,9 +1,12 @@
 import { Global, Inject, Module, type OnApplicationShutdown } from "@nestjs/common";
-import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
+import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema.js";
 
-export type Database = PostgresJsDatabase<typeof schema>;
+// Tipo base do Drizzle para Postgres: vale para o postgres-js (produção) e para o pglite (testes).
+export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 export const DB = Symbol("DB");
 const SQL_CLIENT = Symbol("SQL_CLIENT");

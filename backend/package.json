@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "seed:admin": "node --env-file=../.env scripts/seed.mjs admin",
-    "seed:restaurante": "node --env-file=../.env scripts/seed.mjs restaurante"
+    "seed:restaurante": "node --env-file=../.env scripts/seed.mjs restaurante",
+    "storage:setup": "node --env-file=../.env scripts/storage-setup.mjs"
   },
   "dependencies": {
     "@mesaflow/shared": "^0.1.0",
@@ -29,9 +30,11 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "@nestjs/testing": "^12.3.2",
     "@swc/core": "^1.16.21",
     "@types/express": "^5.0.6",
+    "@types/multer": "2.3.0",
     "@types/node": "^24.19.2",
     "@types/supertest": "^7.2.1",
     "concurrently": "^10.0.6",

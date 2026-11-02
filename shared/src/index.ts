@@ -1,3 +1,5 @@
 export * from "./auth.js";
+export * from "./catalog.js";
 export * from "./health.js";
+export * from "./money.js";
 export * from "./permissions.js";

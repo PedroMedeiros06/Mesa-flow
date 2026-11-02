@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, pgSchema, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, foreignKey, index, integer, pgSchema, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import type { MemberRole } from "@mesaflow/shared";
 
 // O drizzle-kit carrega este arquivo em CommonJS e não enxerga valores do @mesaflow/shared (ESM).
@@ -95,4 +95,106 @@ export const platformAdmins = app
     email: text("email").notNull(),
     ...timestamps,
   })
+  .enableRLS();
+
+// ---------- cardápio ----------
+// Toda tabela do restaurante carrega company_id. As chaves estrangeiras compostas
+// (company_id, x_id) impedem que um produto aponte para a categoria de outro restaurante.
+
+export const categories = app
+  .table(
+    "categories",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      name: text("name").notNull(),
+      position: integer("position").notNull().default(0),
+      active: boolean("active").notNull().default(true),
+      ...timestamps,
+    },
+    (t) => [
+      unique("categories_company_id").on(t.companyId, t.id),
+      uniqueIndex("categories_company_name").on(t.companyId, sql`lower(${t.name})`),
+    ],
+  )
+  .enableRLS();
+
+export const products = app
+  .table(
+    "products",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      categoryId: uuid("category_id").notNull(),
+      name: text("name").notNull(),
+      description: text("description").notNull().default(""),
+      priceCents: integer("price_cents").notNull(),
+      position: integer("position").notNull().default(0),
+      active: boolean("active").notNull().default(true),
+      ...timestamps,
+    },
+    (t) => [
+      unique("products_company_id").on(t.companyId, t.id),
+      // Categoria com produto não pode ser apagada (restrict): o dono move ou apaga os produtos antes.
+      foreignKey({
+        name: "products_category_fk",
+        columns: [t.companyId, t.categoryId],
+        foreignColumns: [categories.companyId, categories.id],
+      }).onDelete("restrict"),
+      index("products_company_category").on(t.companyId, t.categoryId),
+      check("products_price_range", sql`${t.priceCents} between 0 and 10000000`),
+    ],
+  )
+  .enableRLS();
+
+export const productAddons = app
+  .table(
+    "product_addons",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id").notNull(),
+      productId: uuid("product_id").notNull(),
+      name: text("name").notNull(),
+      priceCents: integer("price_cents").notNull(),
+      position: integer("position").notNull().default(0),
+      active: boolean("active").notNull().default(true),
+      ...timestamps,
+    },
+    (t) => [
+      foreignKey({
+        name: "product_addons_product_fk",
+        columns: [t.companyId, t.productId],
+        foreignColumns: [products.companyId, products.id],
+      }).onDelete("cascade"),
+      index("product_addons_product").on(t.productId),
+      check("product_addons_price_range", sql`${t.priceCents} between 0 and 10000000`),
+    ],
+  )
+  .enableRLS();
+
+// Fotos no Supabase Storage (bucket "cardapio"). Aqui fica só o caminho do arquivo.
+export const productImages = app
+  .table(
+    "product_images",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id").notNull(),
+      productId: uuid("product_id").notNull(),
+      path: text("path").notNull().unique(),
+      position: integer("position").notNull().default(0),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    },
+    (t) => [
+      foreignKey({
+        name: "product_images_product_fk",
+        columns: [t.companyId, t.productId],
+        foreignColumns: [products.companyId, products.id],
+      }).onDelete("cascade"),
+      index("product_images_product").on(t.productId),
+    ],
+  )
   .enableRLS();

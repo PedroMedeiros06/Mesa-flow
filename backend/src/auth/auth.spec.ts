@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Controller, Get, type INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
-import { exportJWK, generateKeyPair, SignJWT, createLocalJWKSet, type CryptoKey } from "jose";
 import request from "supertest";
 import { memberSessionSchema, type AdminProfile, type MemberProfile, type Permission } from "@mesaflow/shared";
 import { AppModule } from "../app.module.js";
@@ -12,9 +11,8 @@ import { MemberGuard } from "./guards.js";
 import { IdentityRepository, type MemberIdentity } from "./identity.repository.js";
 import { SupabaseAuthClient, type AuthSession } from "./supabase-auth.client.js";
 import { TokenVerifier } from "./token-verifier.js";
+import { criarEmissorDeTokens, ISSUER_TESTE } from "../testing/tokens.js";
 import { UseGuards } from "@nestjs/common";
-
-const ISSUER = "https://teste.supabase.co/auth/v1";
 
 // Rota só de teste: exige uma permissão e devolve o restaurante que o guard leu do banco.
 @Controller("teste")
@@ -97,19 +95,8 @@ class IdentidadesEmMemoria extends IdentityRepository {
 }
 
 // ---------- tokens assinados com chave local ----------
-let privada: CryptoKey;
+let token: Awaited<ReturnType<typeof criarEmissorDeTokens>>["token"];
 let verifier: TokenVerifier;
-
-async function token(sub: string, opts: { issuer?: string; expiresIn?: string } = {}) {
-  return new SignJWT({ role: "authenticated" })
-    .setProtectedHeader({ alg: "ES256", kid: "teste" })
-    .setSubject(sub)
-    .setIssuer(opts.issuer ?? ISSUER)
-    .setAudience("authenticated")
-    .setIssuedAt()
-    .setExpirationTime(opts.expiresIn ?? "1h")
-    .sign(privada);
-}
 
 const signOuts: string[] = [];
 
@@ -135,10 +122,7 @@ describe("autenticação e permissões", () => {
   const http = () => request(app.getHttpServer());
 
   beforeAll(async () => {
-    const par = await generateKeyPair("ES256", { extractable: true });
-    privada = par.privateKey;
-    const jwks = createLocalJWKSet({ keys: [{ ...(await exportJWK(par.publicKey)), kid: "teste", alg: "ES256" }] });
-    verifier = new TokenVerifier(ISSUER, jwks);
+    ({ verifier, token } = await criarEmissorDeTokens());
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule], controllers: [RotaDeTeste] })
       .overrideProvider(TokenVerifier)
