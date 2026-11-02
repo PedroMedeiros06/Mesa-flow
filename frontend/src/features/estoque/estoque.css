@@ -51,9 +51,6 @@
   font-size: var(--t-xl);
   text-align: right;
 }
-.ing-saldo.negativo {
-  color: var(--brasa-texto);
-}
 .ing-acoes {
   display: flex;
   gap: 4px;

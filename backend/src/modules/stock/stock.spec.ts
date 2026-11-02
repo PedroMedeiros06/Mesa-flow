@@ -265,13 +265,62 @@ describe("estoque", () => {
       ).rejects.toThrow("não pode ser retirado");
     });
 
-    it("estoque pode ficar negativo: a venda não trava", async () => {
+    it("venda sem estoque é recusada, lista tudo o que falta e não mexe em nada", async () => {
       const massa = await ingrediente(donoA, { name: "Massa", unit: "un", initialStockMilli: 1000 });
-      const lasanha = await produtoCom(donoA, [{ ingredientId: massa.id, quantityMilli: 1000 }]);
-      await banco.db.transaction(async (tx) =>
-        estoque.baixar(tx, empresaA, null, await estoque.calcularConsumo(tx, empresaA, [{ productId: lasanha, quantity: 3 }]), "Pedido"),
+      const queijo = await ingrediente(donoA, { name: "Muçarela", unit: "kg", initialStockMilli: 200 });
+      const molho = await ingrediente(donoA, { name: "Molho", unit: "l", initialStockMilli: 10_000 });
+      const lasanha = await produtoCom(donoA, [
+        { ingredientId: massa.id, quantityMilli: 1000 },
+        { ingredientId: queijo.id, quantityMilli: 150 },
+        { ingredientId: molho.id, quantityMilli: 100 },
+      ]);
+      const vender = (quantity: number) =>
+        banco.db.transaction(async (tx) =>
+          estoque.baixar(tx, empresaA, null, await estoque.calcularConsumo(tx, empresaA, [{ productId: lasanha, quantity }]), "Pedido"),
+        );
+
+      const erro = (await vender(3).then(
+        () => expect.fail("a venda deveria ser recusada"),
+        (e: unknown) => e,
+      )) as { getStatus(): number; getResponse(): Record<string, unknown> };
+      expect(erro.getStatus()).toBe(409);
+      expect(erro.getResponse().message).toBe(
+        "Estoque insuficiente: Massa (tem 1 un, precisa de 3 un), Muçarela (tem 0,2 kg, precisa de 0,45 kg).",
       );
-      expect(await saldo(donoA, massa.id)).toBe(-2000);
+      expect(erro.getResponse().shortages).toHaveLength(2);
+      // Nada saiu, nem o molho que tinha saldo, e o histórico não ganhou linha.
+      expect(await saldo(donoA, molho.id)).toBe(10_000);
+      expect(await saldo(donoA, massa.id)).toBe(1000);
+      const hist = await como(donoA).get(`/api/stock/ingredients/${molho.id}/movements`).expect(200);
+      expect(hist.body).toHaveLength(1);
+
+      // Com saldo exato passa e zera.
+      await vender(1);
+      expect(await saldo(donoA, massa.id)).toBe(0);
+    });
+
+    it("perda maior que o saldo é recusada", async () => {
+      const ovo = await ingrediente(donoA, { name: "Ovo", unit: "un", initialStockMilli: 2000 });
+      const res = await como(donoA)
+        .post(`/api/stock/ingredients/${ovo.id}/movements`)
+        .send({ kind: "perda", quantityMilli: 3000 })
+        .expect(409);
+      expect(res.body.message).toBe("Estoque insuficiente: Ovo (tem 2 un, precisa de 3 un).");
+      expect(await saldo(donoA, ovo.id)).toBe(2000);
+    });
+
+    it("20 vendas ao mesmo tempo com saldo para 15: passam 15 e o saldo zera", async () => {
+      const queijo = await ingrediente(donoA, { name: "Muçarela", unit: "kg", initialStockMilli: 15 * 150 });
+      const lasanha = await produtoCom(donoA, [{ ingredientId: queijo.id, quantityMilli: 150 }]);
+      const resultados = await Promise.allSettled(
+        Array.from({ length: 20 }, () =>
+          banco.db.transaction(async (tx) =>
+            estoque.baixar(tx, empresaA, null, await estoque.calcularConsumo(tx, empresaA, [{ productId: lasanha, quantity: 1 }]), "Pedido"),
+          ),
+        ),
+      );
+      expect(resultados.filter((r) => r.status === "fulfilled")).toHaveLength(15);
+      expect(await saldo(donoA, queijo.id)).toBe(0);
     });
 
     it("20 vendas seguidas deixam o saldo exato", async () => {

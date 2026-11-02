@@ -16,7 +16,7 @@ function Situacao({ ingrediente }: { ingrediente: Ingredient }) {
   if (s === "zerado") {
     return (
       <Etiqueta tom="brasa" icone="alerta">
-        {ingrediente.stockMilli < 0 ? "Negativo" : "Zerado"}
+        Zerado
       </Etiqueta>
     );
   }
@@ -148,7 +148,7 @@ export function Estoque() {
                   <span className="ing-status">
                     <Situacao ingrediente={i} />
                   </span>
-                  <span className={`ing-saldo num ${i.stockMilli < 0 ? "negativo" : ""}`}>
+                  <span className="ing-saldo num">
                     {formatQuantity(i.stockMilli, i.unit)}
                   </span>
                   <div className="ing-acoes">

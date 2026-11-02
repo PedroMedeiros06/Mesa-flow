@@ -35,7 +35,7 @@ export function parseQuantity(texto: string): number | null {
   return milli;
 }
 
-/** 250 + "kg" vira "0,25 kg"; aceita negativo (estoque abaixo de zero). */
+/** 250 + "kg" vira "0,25 kg"; aceita negativo (saída no histórico). */
 export function formatQuantity(milli: number, unit: Unit): string {
   const n = (milli / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
   return `${n} ${unit}`;
@@ -122,7 +122,7 @@ export type RecipeItem = z.infer<typeof recipeItemSchema>;
 
 export type StockStatus = "ok" | "baixo" | "zerado";
 
-/** Zerado (ou negativo) e baixo (no mínimo ou abaixo dele). */
+/** Zerado e baixo (no mínimo ou abaixo dele). */
 export function stockStatus(i: Pick<Ingredient, "stockMilli" | "minStockMilli">): StockStatus {
   if (i.stockMilli <= 0) return "zerado";
   if (i.minStockMilli !== null && i.stockMilli <= i.minStockMilli) return "baixo";

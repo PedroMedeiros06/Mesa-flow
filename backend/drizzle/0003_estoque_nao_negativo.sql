@@ -1,0 +1,1 @@
+ALTER TABLE "app"."ingredients" ADD CONSTRAINT "ingredients_stock_non_negative" CHECK ("app"."ingredients"."stock_milli" >= 0);

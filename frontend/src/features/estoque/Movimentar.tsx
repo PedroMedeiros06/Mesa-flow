@@ -55,6 +55,10 @@ export function Movimentar({
       setErroCampo(quantidade.trim() ? "Quantidade inválida. Use, por exemplo, 2,5" : "Informe a quantidade");
       return;
     }
+    if (tipo === "perda" && q > atual.stockMilli) {
+      setErroCampo(`Só tem ${formatQuantity(atual.stockMilli, atual.unit)} em estoque`);
+      return;
+    }
     setErroCampo(undefined);
     setErro(null);
     setEnviando(true);

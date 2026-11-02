@@ -237,13 +237,14 @@ export const ingredients = app
         .references(() => companies.id, { onDelete: "cascade" }),
       name: text("name").notNull(),
       unit: ingredientUnit("unit").notNull(),
-      // Pode ficar negativo: a venda não trava por estoque desatualizado; a tela avisa.
+      // Nunca negativo: venda ou perda sem saldo é recusada (o banco garante com o CHECK).
       stockMilli: integer("stock_milli").notNull().default(0),
       minStockMilli: integer("min_stock_milli"),
       ...timestamps,
     },
     (t) => [
       unique("ingredients_company_id").on(t.companyId, t.id),
+      check("ingredients_stock_non_negative", sql`${t.stockMilli} >= 0`),
       uniqueIndex("ingredients_company_name").on(t.companyId, sql`lower(${t.name})`),
     ],
   )

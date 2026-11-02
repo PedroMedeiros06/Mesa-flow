@@ -7,13 +7,15 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
-import type {
-  Ingredient,
-  ingredientCreateSchema,
-  ingredientInputSchema,
-  Movement,
-  MovementKind,
-  movementInputSchema,
+import {
+  formatQuantity,
+  type Ingredient,
+  type ingredientCreateSchema,
+  type ingredientInputSchema,
+  type Movement,
+  type MovementKind,
+  type movementInputSchema,
+  type Unit,
 } from "@mesaflow/shared";
 import type { z } from "zod";
 import { DB, type Database, type Transaction } from "../../db/database.module.js";
@@ -39,6 +41,22 @@ function pgCode(erro: unknown): string | undefined {
 }
 
 const naoEncontrado = () => new NotFoundException({ statusCode: 404, message: "Ingrediente não encontrado." });
+
+/** Ingrediente sem saldo para a venda ou a perda. */
+export interface Falta {
+  ingredientId: string;
+  name: string;
+  unit: Unit;
+  availableMilli: number;
+  neededMilli: number;
+}
+
+function estoqueInsuficiente(faltas: Falta[]) {
+  const lista = faltas
+    .map((f) => `${f.name} (tem ${formatQuantity(f.availableMilli, f.unit)}, precisa de ${formatQuantity(f.neededMilli, f.unit)})`)
+    .join(", ");
+  return new ConflictException({ statusCode: 409, message: `Estoque insuficiente: ${lista}.`, shortages: faltas });
+}
 
 /** Ingredientes, ficha técnica e movimentos. Toda consulta filtra por company_id da sessão. */
 @Injectable()
@@ -265,6 +283,8 @@ export class StockService {
 
   /**
    * Soma no saldo com UPDATE atômico (sem ler antes) e grava o histórico.
+   * O UPDATE só passa se o saldo não ficar negativo; o que faltar vira um 409 com a lista
+   * completa, e a transação inteira é desfeita.
    * Ordena por id para duas vendas simultâneas travarem as linhas na mesma ordem (sem deadlock).
    */
   private async registrar(
@@ -275,14 +295,30 @@ export class StockService {
     kind: MovementKind,
     reason: string,
   ) {
+    const faltas: Falta[] = [];
     for (const d of [...deltas].sort((a, b) => a.ingredientId.localeCompare(b.ingredientId))) {
       if (d.deltaMilli === 0 && kind !== "contagem") continue;
+      const onde = and(eq(ingredients.companyId, companyId), eq(ingredients.id, d.ingredientId));
       const [ing] = await tx
         .update(ingredients)
         .set({ stockMilli: sql`${ingredients.stockMilli} + ${d.deltaMilli}` })
-        .where(and(eq(ingredients.companyId, companyId), eq(ingredients.id, d.ingredientId)))
+        .where(and(onde, sql`${ingredients.stockMilli} + ${d.deltaMilli} >= 0`))
         .returning({ stockMilli: ingredients.stockMilli });
-      if (!ing) throw naoEncontrado();
+      if (!ing) {
+        const [existe] = await tx
+          .select({ name: ingredients.name, unit: ingredients.unit, stockMilli: ingredients.stockMilli })
+          .from(ingredients)
+          .where(onde);
+        if (!existe) throw naoEncontrado();
+        faltas.push({
+          ingredientId: d.ingredientId,
+          name: existe.name,
+          unit: existe.unit,
+          availableMilli: existe.stockMilli,
+          neededMilli: -d.deltaMilli,
+        });
+        continue;
+      }
       await tx.insert(stockMovements).values({
         companyId,
         ingredientId: d.ingredientId,
@@ -293,6 +329,7 @@ export class StockService {
         memberId,
       });
     }
+    if (faltas.length) throw estoqueInsuficiente(faltas);
   }
 
   private nomeRepetido(erro: unknown) {
