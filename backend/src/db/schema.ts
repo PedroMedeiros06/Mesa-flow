@@ -15,7 +15,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { MemberRole, MovementKind, OrderOrigin, OrderStatus, PaymentMethod, Unit } from "@mesaflow/shared";
+import type { MemberRole, MovementKind, OrderOrigin, OrderStatus, PaymentMethod, TabStatus, Unit } from "@mesaflow/shared";
 
 // O drizzle-kit carrega este arquivo em CommonJS e não enxerga valores do @mesaflow/shared (ESM).
 // Por isso os papéis são repetidos aqui, e o tipo abaixo quebra a compilação se divergirem.
@@ -40,12 +40,15 @@ void _movimentosConferidos;
 const ORDER_STATUSES = ["novo", "preparo", "pronto", "entregue", "cancelado"] as const;
 const ORDER_ORIGINS = ["balcao", "vitrine", "mesa"] as const;
 const PAYMENT_METHODS = ["dinheiro", "pix", "credito", "debito"] as const;
+const TAB_STATUSES = ["aberta", "fechada", "juntada"] as const;
 const _statusConferidos: Igual<OrderStatus, (typeof ORDER_STATUSES)[number]> = true;
 const _origensConferidas: Igual<OrderOrigin, (typeof ORDER_ORIGINS)[number]> = true;
 const _pagamentosConferidos: Igual<PaymentMethod, (typeof PAYMENT_METHODS)[number]> = true;
 void _statusConferidos;
 void _origensConferidas;
 void _pagamentosConferidos;
+const _comandasConferidas: Igual<TabStatus, (typeof TAB_STATUSES)[number]> = true;
+void _comandasConferidas;
 
 // Tudo do MesaFlow fica no schema "app", que a API pública do Supabase não expõe.
 // Só o backend acessa estas tabelas, pela conexão direta. RLS fica ligado sem políticas
@@ -346,6 +349,44 @@ export const orderCounters = app
   )
   .enableRLS();
 
+export const tabStatus = app.enum("tab_status", TAB_STATUSES);
+
+// Comanda de mesa (ou de balcão com nome). O total é calculado das rodadas; ao fechar, fica congelado.
+export const tabs = app
+  .table(
+    "tabs",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      label: text("label").notNull(),
+      tableNumber: integer("table_number"),
+      status: tabStatus("status").notNull().default("aberta"),
+      // Cópia da taxa na abertura (pontos-base: 1000 = 10%). Pode ser tirada ao fechar.
+      serviceFeeBps: integer("service_fee_bps").notNull(),
+      mergedIntoId: uuid("merged_into_id"),
+      openedBy: uuid("opened_by").references(() => members.id, { onDelete: "set null" }),
+      openedAt: timestamp("opened_at", { withTimezone: true }).notNull().defaultNow(),
+      closedBy: uuid("closed_by").references(() => members.id, { onDelete: "set null" }),
+      closedAt: timestamp("closed_at", { withTimezone: true }),
+      closedSubtotalCents: integer("closed_subtotal_cents"),
+      closedServiceFeeCents: integer("closed_service_fee_cents"),
+      closedTotalCents: integer("closed_total_cents"),
+    },
+    (t) => [
+      unique("tabs_company_id").on(t.companyId, t.id),
+      // Uma comanda aberta por mesa.
+      uniqueIndex("tabs_open_table")
+        .on(t.companyId, t.tableNumber)
+        .where(sql`${t.status} = 'aberta' and ${t.tableNumber} is not null`),
+      index("tabs_company_status").on(t.companyId, t.status),
+      check("tabs_fee_range", sql`${t.serviceFeeBps} between 0 and 2000`),
+      check("tabs_table_range", sql`${t.tableNumber} is null or ${t.tableNumber} between 1 and 999`),
+    ],
+  )
+  .enableRLS();
+
 export const orders = app
   .table(
     "orders",
@@ -369,6 +410,8 @@ export const orders = app
       receivedCents: integer("received_cents"),
       changeCents: integer("change_cents").notNull().default(0),
       clientRequestId: uuid("client_request_id").notNull(),
+      // Rodada de mesa: a comanda dona do pedido.
+      tabId: uuid("tab_id"),
       createdBy: uuid("created_by").references(() => members.id, { onDelete: "set null" }),
       statusChangedAt: timestamp("status_changed_at", { withTimezone: true }).notNull().defaultNow(),
       cancelledBy: uuid("cancelled_by").references(() => members.id, { onDelete: "set null" }),
@@ -381,6 +424,12 @@ export const orders = app
       unique("orders_company_day_number").on(t.companyId, t.day, t.number),
       index("orders_company_status").on(t.companyId, t.status),
       index("orders_company_created").on(t.companyId, t.createdAt),
+      index("orders_tab").on(t.tabId),
+      foreignKey({
+        name: "orders_tab_fk",
+        columns: [t.companyId, t.tabId],
+        foreignColumns: [tabs.companyId, tabs.id],
+      }).onDelete("restrict"),
       check("orders_totals", sql`${t.subtotalCents} >= 0 and ${t.discountCents} between 0 and ${t.subtotalCents} and ${t.totalCents} = ${t.subtotalCents} - ${t.discountCents}`),
     ],
   )
@@ -405,6 +454,10 @@ export const orderItems = app
       notes: text("notes").notNull().default(""),
       totalCents: integer("total_cents").notNull(),
       consumption: jsonb("consumption").$type<ConsumoGuardado>().notNull(),
+      // Item tirado da conta da mesa. O estoque volta se a rodada ainda não tinha sido entregue.
+      cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+      cancelledBy: uuid("cancelled_by").references(() => members.id, { onDelete: "set null" }),
+      cancelReason: text("cancel_reason"),
     },
     (t) => [
       foreignKey({
@@ -415,6 +468,63 @@ export const orderItems = app
       index("order_items_order").on(t.orderId),
       index("order_items_product").on(t.productId),
       check("order_items_quantity", sql`${t.quantity} between 1 and 99`),
+    ],
+  )
+  .enableRLS();
+
+// Pagamentos parciais da comanda. Estorno marca, não apaga.
+export const tabPayments = app
+  .table(
+    "tab_payments",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id").notNull(),
+      tabId: uuid("tab_id").notNull(),
+      method: paymentMethod("method").notNull(),
+      amountCents: integer("amount_cents").notNull(),
+      receivedCents: integer("received_cents"),
+      changeCents: integer("change_cents").notNull().default(0),
+      payerLabel: text("payer_label").notNull().default(""),
+      clientRequestId: uuid("client_request_id").notNull(),
+      createdBy: uuid("created_by").references(() => members.id, { onDelete: "set null" }),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+      voidedAt: timestamp("voided_at", { withTimezone: true }),
+      voidedBy: uuid("voided_by").references(() => members.id, { onDelete: "set null" }),
+      voidReason: text("void_reason"),
+    },
+    (t) => [
+      foreignKey({
+        name: "tab_payments_tab_fk",
+        columns: [t.companyId, t.tabId],
+        foreignColumns: [tabs.companyId, tabs.id],
+      }).onDelete("cascade"),
+      unique("tab_payments_company_request").on(t.companyId, t.clientRequestId),
+      index("tab_payments_tab").on(t.tabId),
+      check("tab_payments_amount", sql`${t.amountCents} > 0`),
+    ],
+  )
+  .enableRLS();
+
+// Tudo que aconteceu na comanda, só inserções: quem abriu, lançou, cancelou, transferiu, pagou, fechou.
+export const tabEvents = app
+  .table(
+    "tab_events",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id").notNull(),
+      tabId: uuid("tab_id").notNull(),
+      kind: text("kind").notNull(),
+      description: text("description").notNull(),
+      memberId: uuid("member_id").references(() => members.id, { onDelete: "set null" }),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    },
+    (t) => [
+      foreignKey({
+        name: "tab_events_tab_fk",
+        columns: [t.companyId, t.tabId],
+        foreignColumns: [tabs.companyId, tabs.id],
+      }).onDelete("cascade"),
+      index("tab_events_tab_created").on(t.tabId, t.createdAt),
     ],
   )
   .enableRLS();

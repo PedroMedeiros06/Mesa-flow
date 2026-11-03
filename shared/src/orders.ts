@@ -150,6 +150,9 @@ export const orderItemSchema = z.object({
   removed: z.array(z.string()),
   notes: z.string(),
   totalCents: z.number().int(),
+  /** Item tirado da conta (só em rodadas de mesa). */
+  cancelled: z.boolean(),
+  cancelReason: z.string().nullable(),
 });
 export type OrderItem = z.infer<typeof orderItemSchema>;
 
@@ -171,6 +174,9 @@ export const orderSchema = z.object({
   createdAt: z.string(),
   statusChangedAt: z.string(),
   cancelReason: z.string().nullable(),
+  /** Rodada de mesa: a comanda de onde veio. */
+  tabId: z.uuid().nullable(),
+  tabLabel: z.string().nullable(),
   items: z.array(orderItemSchema),
 });
 export type Order = z.infer<typeof orderSchema>;

@@ -15,12 +15,12 @@ export function TicketImpresso({ pedido, restaurante }: { pedido: Order; restaur
       <div>{restaurante}</div>
       <h1>Pedido {pedido.number}</h1>
       <div>
-        {ORDER_ORIGIN_LABELS[pedido.origin]}, {hora(pedido.createdAt)}
+        {pedido.tabLabel ?? ORDER_ORIGIN_LABELS[pedido.origin]}, {hora(pedido.createdAt)}
         {pedido.customerName && `, ${pedido.customerName}`}
       </div>
       <hr />
       <ul>
-        {pedido.items.map((i) => (
+        {pedido.items.filter((i) => !i.cancelled).map((i) => (
           <li key={i.id}>
             <strong>
               {i.quantity}x {i.name}
@@ -43,7 +43,7 @@ export function TicketImpresso({ pedido, restaurante }: { pedido: Order; restaur
       )}
       <hr />
       <div>
-        Total {formatMoney(pedido.totalCents)}
+        {pedido.tabLabel ? "Rodada" : "Total"} {formatMoney(pedido.totalCents)}
         {pedido.paymentMethod && ` (${PAYMENT_LABELS[pedido.paymentMethod]})`}
       </div>
     </div>

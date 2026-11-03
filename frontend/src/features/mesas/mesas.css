@@ -1,0 +1,240 @@
+/* Mesas: mapa das comandas e conta da mesa */
+
+/* ---------- mapa ---------- */
+.mapa {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 14px;
+}
+.mesa {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "num num"
+    "nome nome"
+    "valor valor"
+    "info info";
+  gap: 2px;
+  padding: 12px 14px 14px;
+  text-align: left;
+  border: 2px solid var(--tinta);
+  border-radius: var(--raio-md);
+  background: var(--papel);
+  color: var(--tinta);
+  cursor: pointer;
+  /* faixa laranja no topo: mesa ocupada */
+  box-shadow: inset 0 6px 0 var(--laranja);
+}
+.mesa:hover {
+  border-color: var(--laranja);
+}
+.mesa:active {
+  transform: translateY(1px);
+}
+.mesa-num {
+  grid-area: num;
+  font-size: var(--t-4xl);
+  line-height: 1;
+  margin-top: 6px;
+}
+.mesa-nome {
+  grid-area: nome;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mesa-valor {
+  grid-area: valor;
+  font-weight: 800;
+  font-size: var(--t-lg);
+  margin-top: 6px;
+}
+.mesa-info {
+  grid-area: info;
+  font-size: var(--t-sm);
+}
+.mesa-quitada {
+  box-shadow: inset 0 6px 0 var(--feito);
+}
+.mesa-fechada {
+  border-color: var(--linha);
+  box-shadow: none;
+}
+.mesa-fechada .mesa-num {
+  color: var(--tinta-2);
+}
+.mapa-vazio {
+  padding: 24px 0;
+}
+
+/* ---------- conta ---------- */
+.mesa-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+.conta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 28px;
+  align-items: start;
+}
+.conta-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--t-xl);
+  font-stretch: 85%;
+  font-weight: 800;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 3px solid var(--tinta);
+}
+.conta-sub .num {
+  margin-left: auto;
+  font-family: var(--fonte-titulo);
+}
+.lista-rodadas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lista-rodadas > li {
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+  border-bottom: 2px dashed var(--linha);
+}
+.rodada-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.rodada-cab .numeral {
+  font-size: var(--t-2xl);
+}
+.rodada-cab .link-btn {
+  margin-left: auto;
+}
+.rodada-itens,
+.pagamentos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.rodada-itens > li,
+.pagamentos > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 36px;
+  gap: 10px;
+  align-items: center;
+}
+.rodada-itens .suave,
+.pagamentos .suave {
+  display: block;
+  font-size: var(--t-sm);
+}
+.rodada-itens .valor,
+.pagamentos .valor {
+  font-weight: 700;
+}
+.rodada-itens .icone-btn,
+.pagamentos .icone-btn {
+  width: 36px;
+  height: 36px;
+}
+.item-cancelado > span:first-child {
+  color: var(--tinta-2);
+}
+.item-cancelado .valor {
+  text-decoration: line-through;
+  color: var(--tinta-2);
+}
+.conta-canceladas {
+  margin-top: 10px;
+  font-size: var(--t-sm);
+}
+.historico {
+  margin-top: 24px;
+}
+.historico summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.historico ol {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: var(--t-sm);
+}
+.historico li {
+  display: grid;
+  grid-template-columns: 3.5em minmax(0, 1fr);
+  gap: 8px;
+}
+
+.conta-lado {
+  position: sticky;
+  top: 16px;
+}
+.totais .falta dt,
+.totais .falta dd {
+  font-weight: 800;
+  color: var(--brasa-texto);
+}
+.pagar {
+  display: grid;
+  gap: 12px;
+}
+.dividir,
+.partes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.partes {
+  font-size: var(--t-sm);
+}
+.pagar-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.conta-dica {
+  font-size: var(--t-sm);
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .conta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .conta-lado {
+    position: static;
+    order: -1;
+  }
+}
+@media (max-width: 560px) {
+  .mapa {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .pagar-campos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

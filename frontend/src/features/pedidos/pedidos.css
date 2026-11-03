@@ -370,6 +370,19 @@
   color: var(--brasa-texto);
   font-weight: 700;
 }
+.ticket-mesa {
+  color: var(--tinta);
+  font-size: var(--t-md);
+}
+.ticket-item-cancelado strong,
+.ticket-item-cancelado .qtd-x {
+  text-decoration: line-through;
+  color: var(--tinta-2);
+}
+.item-riscado > span:first-child {
+  text-decoration: line-through;
+  color: var(--tinta-2);
+}
 .ticket-obs {
   padding: 8px 10px;
   border-radius: var(--raio-sm);

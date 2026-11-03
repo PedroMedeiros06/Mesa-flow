@@ -166,7 +166,7 @@ export function Cozinha() {
                           <div className="ticket-cab">
                             <span className="numeral">{o.number}</span>
                             <span className="suave">
-                              {ORDER_ORIGIN_LABELS[o.origin]}
+                              {o.tabLabel ? <strong className="ticket-mesa">{o.tabLabel}</strong> : ORDER_ORIGIN_LABELS[o.origin]}
                               <br />
                               <span className={`ticket-espera ${min >= ATRASO_MIN ? "ticket-atrasado" : ""}`}>
                                 {min < 1 ? "agora" : `há ${min} min`}
@@ -176,9 +176,12 @@ export function Cozinha() {
                           {o.customerName && <span className="ticket-cliente">{o.customerName}</span>}
                           <ul className="ticket-itens">
                             {o.items.map((i) => (
-                              <li key={i.id}>
+                              <li key={i.id} className={i.cancelled ? "ticket-item-cancelado" : undefined}>
                                 <span className="qtd-x num">{i.quantity}×</span>
-                                <strong>{i.name}</strong>
+                                <strong>
+                                  {i.name}
+                                  {i.cancelled && <span className="tirar"> (cancelado)</span>}
+                                </strong>
                                 {(i.addons.length > 0 || i.removed.length > 0 || i.notes) && (
                                   <ul>
                                     {i.addons.map((a) => (

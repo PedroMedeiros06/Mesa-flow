@@ -21,6 +21,7 @@ import {
   type Order,
   type orderInputSchema,
   type OrderOrigin,
+  type PaymentMethod,
   type SellableMenu,
   type StatusChange,
 } from "@mesaflow/shared";
@@ -37,6 +38,7 @@ import {
   productImages,
   productIngredients,
   products,
+  tabs,
 } from "../../db/schema.js";
 import { StorageClient } from "../../storage/storage.client.js";
 import { StockService, type Consumo } from "../stock/stock.service.js";
@@ -44,11 +46,17 @@ import { StockService, type Consumo } from "../stock/stock.service.js";
 type OrderData = z.output<typeof orderInputSchema>;
 
 /** O que qualquer canal (balcão, vitrine, mesa) manda para gravar um pedido. */
-export type NovoPedido = Omit<OrderData, "customerName"> & {
+export type NovoPedido = Omit<OrderData, "customerName" | "paymentMethod"> & {
   origin: OrderOrigin;
   customerName: string;
   customerPhone: string;
+  /** Rodada de mesa paga no fechamento da comanda: sem forma de pagamento no pedido. */
+  paymentMethod: PaymentMethod | null;
+  tabId?: string;
 };
+
+/** Roda dentro da transação do pedido, antes de tudo (a comanda usa para travar e conferir a mesa). */
+export type AntesDeGravar = (tx: Transaction) => Promise<void>;
 type CancelData = z.output<typeof cancelOrderSchema>;
 
 /** Dia do pedido no fuso do restaurante (por enquanto todos em São Paulo). */
@@ -189,12 +197,20 @@ export class OrdersService {
   }
 
   /** Grava um pedido de qualquer canal, uma vez só por clientRequestId. memberId null = cliente pela vitrine. */
-  async registrar(companyId: string, memberId: string | null, data: NovoPedido): Promise<{ order: Order; created: boolean }> {
+  async registrar(
+    companyId: string,
+    memberId: string | null,
+    data: NovoPedido,
+    antes?: AntesDeGravar,
+  ): Promise<{ order: Order; created: boolean }> {
     const repetido = await this.porRequisicao(companyId, data.clientRequestId);
     if (repetido) return { order: repetido, created: false };
 
     try {
-      const id = await this.conn.transaction((tx) => this.gravar(tx, companyId, memberId, data));
+      const id = await this.conn.transaction(async (tx) => {
+        await antes?.(tx);
+        return this.gravar(tx, companyId, memberId, data);
+      });
       return { order: await this.get(companyId, id), created: true };
     } catch (erro) {
       // Duas tentativas iguais ao mesmo tempo: a segunda esbarra no índice único e devolve a primeira.
@@ -288,6 +304,7 @@ export class OrdersService {
         receivedCents,
         changeCents,
         clientRequestId: data.clientRequestId,
+        tabId: data.tabId ?? null,
         createdBy: memberId,
       })
       .returning({ id: orders.id });
@@ -322,6 +339,11 @@ export class OrdersService {
     return this.buscar(companyId, [inArray(orders.status, [...ACTIVE_STATUSES])], "fila");
   }
 
+  /** Rodadas de uma comanda, da primeira para a última. */
+  ofTab(companyId: string, tabId: string) {
+    return this.buscar(companyId, [eq(orders.tabId, tabId)], "fila");
+  }
+
   /** Pedidos de um dia (padrão: hoje), do mais novo para o mais antigo. */
   day(companyId: string, dia?: string) {
     return this.buscar(companyId, [eq(orders.day, dia ?? HOJE)], "dia");
@@ -329,9 +351,10 @@ export class OrdersService {
 
   private async buscar(companyId: string, filtros: ReturnType<typeof eq>[], ordem: "fila" | "dia" = "dia"): Promise<Order[]> {
     const rows = await this.conn
-      .select({ o: orders, createdByName: members.name })
+      .select({ o: orders, createdByName: members.name, tabLabel: tabs.label })
       .from(orders)
       .leftJoin(members, eq(members.id, orders.createdBy))
+      .leftJoin(tabs, eq(tabs.id, orders.tabId))
       .where(and(eq(orders.companyId, companyId), ...filtros))
       .orderBy(...(ordem === "fila" ? [asc(orders.createdAt)] : [desc(orders.day), desc(orders.number)]))
       .limit(500);
@@ -349,7 +372,7 @@ export class OrdersService {
         ),
       )
       .orderBy(asc(orderItems.position));
-    return rows.map(({ o, createdByName }) => ({
+    return rows.map(({ o, createdByName, tabLabel }) => ({
       id: o.id,
       number: o.number,
       origin: o.origin,
@@ -367,6 +390,8 @@ export class OrdersService {
       createdAt: o.createdAt.toISOString(),
       statusChangedAt: o.statusChangedAt.toISOString(),
       cancelReason: o.cancelReason,
+      tabId: o.tabId,
+      tabLabel,
       items: itens
         .filter((i) => i.orderId === o.id)
         .map((i) => ({
@@ -379,6 +404,8 @@ export class OrdersService {
           removed: i.removed,
           notes: i.notes,
           totalCents: i.totalCents,
+          cancelled: i.cancelledAt !== null,
+          cancelReason: i.cancelReason,
         })),
     }));
   }

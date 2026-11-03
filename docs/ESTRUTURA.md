@@ -127,7 +127,7 @@ Regras transversais:
 | 6 | **Estoque** (ingredientes, ficha técnica) | baixa e estorno exatos em teste |
 | 7 | **Pedidos**: balcão + cozinha + lista do dia. Inclui preço promocional no produto e desconto no pedido (permissão `orders.discount`). Sem estoque, o pedido é recusado | 20 pedidos simultâneos deixam o estoque exato |
 | 8 | **Vitrine** pública | pedido do celular aparece na cozinha |
-| 9 | **Comandas e mesas** | dois garçons na mesma mesa mantêm o total certo |
+| 9 | **Comandas e mesas**: cada rodada é um pedido que passa pela cozinha; cancelar item (estoque volta só se a cozinha não começou), transferir rodada, juntar mesas, taxa de serviço de 10% (pode ser tirada), pagamentos parciais com divisão por pessoas, fechar só com a conta paga e reabrir com motivo | dois garçons na mesma mesa mantêm o total certo |
 | 10 | **Dashboard** | números batem com consulta SQL de referência |
 | 11 | **Admin + cobrança manual** | cadastro do restaurante até o primeiro pedido sem ajuda técnica |
 

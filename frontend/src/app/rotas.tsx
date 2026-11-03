@@ -5,6 +5,7 @@ import { Cardapio } from "@/features/cardapio/Cardapio";
 import { Estoque } from "@/features/estoque/Estoque";
 import { AcompanharPedido } from "@/features/loja/AcompanharPedido";
 import { Loja } from "@/features/loja/Loja";
+import { Mesas } from "@/features/mesas/Mesas";
 import { Balcao } from "@/features/pedidos/Balcao";
 import { Cozinha } from "@/features/pedidos/Cozinha";
 import { Pedidos } from "@/features/pedidos/Pedidos";
@@ -31,6 +32,7 @@ function NaoEncontrado() {
 
 // Telas prontas; as demais mostram "em construção" até a etapa delas.
 const TELAS: Record<string, React.ReactNode> = {
+  mesas: <Mesas />,
   balcao: <Balcao />,
   cozinha: <Cozinha />,
   pedidos: <Pedidos />,

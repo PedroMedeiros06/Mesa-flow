@@ -13,6 +13,7 @@ import { ApiErro } from "@/lib/http";
 import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Campo, Dialogo, Etiqueta, type TomEtiqueta } from "@/ui/componentes";
 import type { NomeIcone } from "@/ui/Icone";
+import { linkWhatsapp, mascaraTelefone } from "../loja/Loja";
 import { apiPedidos } from "./api";
 import { CancelarPedido } from "./CancelarPedido";
 import { hora, TicketImpresso } from "./ticket";
@@ -126,7 +127,7 @@ export function Pedidos() {
                   <button type="button" className="pedido-linha" onClick={() => setAberto(o)}>
                     <span className="numeral">{o.number}</span>
                     <span className="resumo">
-                      <strong>{o.customerName || ORDER_ORIGIN_LABELS[o.origin]}</strong>
+                      <strong>{o.tabLabel || o.customerName || ORDER_ORIGIN_LABELS[o.origin]}</strong>
                       <span className="suave">
                         {hora(o.createdAt)}, {o.items.map((i) => `${i.quantity}× ${i.name}`).join(", ")}
                       </span>
@@ -166,18 +167,26 @@ export function Pedidos() {
             <p>
               <Etiqueta {...TOM_STATUS[aberto.status]}>{ORDER_STATUS_LABELS[aberto.status]}</Etiqueta>{" "}
               <span className="suave">
-                {ORDER_ORIGIN_LABELS[aberto.origin]}, {hora(aberto.createdAt)}
+                {aberto.tabLabel ?? ORDER_ORIGIN_LABELS[aberto.origin]}, {hora(aberto.createdAt)}
                 {aberto.createdByName && `, lançado por ${aberto.createdByName}`}
               </span>
             </p>
             {aberto.customerName && (
               <p>
                 Cliente: <strong>{aberto.customerName}</strong>
+                {aberto.customerPhone && (
+                  <>
+                    {" "}
+                    <a href={linkWhatsapp(aberto.customerPhone)} target="_blank" rel="noreferrer">
+                      {mascaraTelefone(aberto.customerPhone)}
+                    </a>
+                  </>
+                )}
               </p>
             )}
             <ul className="detalhe-itens">
               {aberto.items.map((i) => (
-                <li key={i.id}>
+                <li key={i.id} className={i.cancelled ? "item-riscado" : undefined}>
                   <span>
                     {i.quantity}× {i.name}
                     {(i.addons.length > 0 || i.removed.length > 0 || i.notes) && (
@@ -188,7 +197,7 @@ export function Pedidos() {
                       </span>
                     )}
                   </span>
-                  <span className="num">{formatMoney(i.totalCents)}</span>
+                  <span className="num">{i.cancelled ? "cancelado" : formatMoney(i.totalCents)}</span>
                 </li>
               ))}
             </ul>
