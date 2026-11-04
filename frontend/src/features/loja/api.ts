@@ -1,7 +1,10 @@
 import {
   publicOrderSchema,
+  publicTabSchema,
+  waiterCallResponseSchema,
   storefrontSchema,
   type PublicOrder,
+  type PublicTab,
   type Storefront,
   type StorefrontOrderInput,
 } from "@mesaflow/shared";
@@ -24,5 +27,12 @@ export const apiLoja = {
   },
   acompanhar(codigo: string, id: string): Promise<PublicOrder> {
     return chamar(publicOrderSchema, `/storefront/${codigo}/orders/${id}`);
+  },
+  /** Página do QR da mesa. */
+  mesa(token: string): Promise<PublicTab> {
+    return chamar(publicTabSchema, `/table/${token}`);
+  },
+  chamarGarcom(token: string): Promise<{ calledAt: string }> {
+    return chamar(waiterCallResponseSchema, `/table/${token}/call`, { method: "POST" });
   },
 };

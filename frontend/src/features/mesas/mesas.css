@@ -238,3 +238,128 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- chamado do garçom e QR ---------- */
+.mesa-chamando {
+  border-color: var(--brasa);
+  box-shadow: inset 0 6px 0 var(--brasa), 0 0 0 3px color-mix(in oklab, var(--brasa) 35%, transparent);
+}
+.mesa-chamado {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: var(--raio-sm);
+  background: var(--brasa);
+  color: var(--sobre-cor);
+  font-weight: 800;
+  font-size: var(--t-sm);
+  justify-self: start;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mesa-chamando {
+    animation: chamando 1.6s ease-in-out infinite;
+  }
+  @keyframes chamando {
+    50% {
+      box-shadow: inset 0 6px 0 var(--brasa), 0 0 0 6px color-mix(in oklab, var(--brasa) 20%, transparent);
+    }
+  }
+}
+.conta-chamado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 2px solid var(--brasa);
+  border-radius: var(--raio-md);
+  background: color-mix(in oklab, var(--brasa) 14%, var(--papel));
+  font-weight: 700;
+}
+.conta-chamado span {
+  flex: 1 1 14em;
+}
+.qr-intervalo {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+  margin: 12px 0;
+}
+.qr-grade {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.qr-grade li {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px;
+  border: 2px solid var(--linha);
+  border-radius: var(--raio-md);
+  background: var(--papel);
+  text-align: center;
+}
+.qr-confirmar {
+  display: grid;
+  gap: 6px;
+  font-size: var(--t-sm);
+}
+.folha-qr {
+  display: none;
+}
+@media (max-width: 560px) {
+  .qr-intervalo {
+    grid-template-columns: 1fr 1fr;
+  }
+  .qr-intervalo .btn {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Folha A4 com um cartão por mesa (o resto do painel imprime em 80 mm). */
+@page folhaqr {
+  size: A4;
+  margin: 12mm;
+}
+@media print {
+  dialog::backdrop {
+    background: none;
+  }
+  .so-impressao.folha-qr {
+    page: folhaqr;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8mm;
+    width: 100%;
+  }
+  .folha-qr-cartao {
+    break-inside: avoid;
+    display: grid;
+    justify-items: center;
+    gap: 2mm;
+    padding: 5mm;
+    border: 0.6mm dashed #000;
+    text-align: center;
+    font-size: 10pt;
+  }
+  .folha-qr-mesa {
+    font-size: 22pt;
+    font-weight: 800;
+  }
+  .folha-qr-cartao svg {
+    width: 45mm;
+    height: 45mm;
+  }
+  .folha-qr-rest {
+    font-weight: 700;
+  }
+}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MAX_CENTS } from "./money.js";
-import { MAX_ORDER_ITEMS, orderItemInputSchema, orderSchema, PAYMENT_METHODS } from "./orders.js";
+import { MAX_ORDER_ITEMS, ORDER_STATUSES, orderItemInputSchema, orderSchema, PAYMENT_METHODS } from "./orders.js";
 
 // Comandas de mesa. Cada lançamento é uma "rodada": um pedido (origin "mesa") ligado à comanda,
 // que passa pela cozinha como qualquer outro. A conta é a soma dos itens não cancelados das rodadas,
@@ -124,6 +124,8 @@ export const tabSummarySchema = z.object({
   openedByName: z.string().nullable(),
   rounds: z.number().int(),
   totals: totaisSchema,
+  /** Cliente chamou o garçom pelo QR e ninguém atendeu ainda. */
+  callingSince: z.string().nullable(),
 });
 export type TabSummary = z.infer<typeof tabSummarySchema>;
 
@@ -134,3 +136,65 @@ export const tabDetailSchema = tabSummarySchema.extend({
   mergedIntoId: z.uuid().nullable(),
 });
 export type TabDetail = z.infer<typeof tabDetailSchema>;
+
+// ---------- QR da mesa e chamado do garçom ----------
+
+/** Depois de chamar, o cliente espera este tempo para chamar de novo (enquanto ninguém atendeu, vale o mesmo chamado). */
+export const WAITER_CALL_COOLDOWN_MS = 60_000;
+export const MAX_QR_TABLES = 100;
+
+export const tableCodesQuerySchema = z
+  .object({
+    from: z.coerce.number().int().min(1, "Mesa de 1 a 999").max(999, "Mesa de 1 a 999"),
+    to: z.coerce.number().int().min(1, "Mesa de 1 a 999").max(999, "Mesa de 1 a 999"),
+  })
+  .refine((q) => q.to >= q.from, { path: ["to"], message: "A última mesa vem depois da primeira" })
+  .refine((q) => q.to - q.from < MAX_QR_TABLES, { path: ["to"], message: `No máximo ${MAX_QR_TABLES} mesas por vez` });
+
+export const tableCodeSchema = z.object({ tableNumber: z.number().int(), token: z.string() });
+export type TableCode = z.infer<typeof tableCodeSchema>;
+
+/** Chamado aberto, para o alerta do salão. */
+export const waiterCallSchema = z.object({
+  tabId: z.uuid(),
+  label: z.string(),
+  tableNumber: z.number().int().nullable(),
+  createdAt: z.string(),
+});
+export type WaiterCall = z.infer<typeof waiterCallSchema>;
+
+/** Resposta do "chamar o garçom". */
+export const waiterCallResponseSchema = z.object({ calledAt: z.string() });
+
+/** O que o cliente vê ao ler o QR: sem ids da equipe, motivos, pagamentos ou observações internas. */
+export const publicTabSchema = z.object({
+  company: z.object({ name: z.string() }),
+  tableNumber: z.number().int(),
+  tab: z
+    .object({
+      label: z.string(),
+      openedAt: z.string(),
+      openedByName: z.string().nullable(),
+      rounds: z.array(
+        z.object({
+          id: z.uuid(),
+          number: z.number().int(),
+          status: z.enum(ORDER_STATUSES),
+          createdAt: z.string(),
+          items: z.array(
+            z.object({
+              name: z.string(),
+              quantity: z.number().int(),
+              addons: z.array(z.string()),
+              removed: z.array(z.string()),
+              totalCents: z.number().int(),
+            }),
+          ),
+        }),
+      ),
+      totals: totaisSchema,
+      calledAt: z.string().nullable(),
+    })
+    .nullable(),
+});
+export type PublicTab = z.infer<typeof publicTabSchema>;

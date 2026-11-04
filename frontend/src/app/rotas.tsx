@@ -5,6 +5,7 @@ import { Cardapio } from "@/features/cardapio/Cardapio";
 import { Estoque } from "@/features/estoque/Estoque";
 import { AcompanharPedido } from "@/features/loja/AcompanharPedido";
 import { Loja } from "@/features/loja/Loja";
+import { MinhaMesa } from "@/features/loja/MinhaMesa";
 import { Mesas } from "@/features/mesas/Mesas";
 import { Balcao } from "@/features/pedidos/Balcao";
 import { Cozinha } from "@/features/pedidos/Cozinha";
@@ -55,6 +56,7 @@ export const rotas: RouteObject[] = [
   { path: "/esqueci-senha", element: <EsqueciSenha /> },
   { path: "/loja/:codigo", element: <Loja /> },
   { path: "/loja/:codigo/pedido/:id", element: <AcompanharPedido /> },
+  { path: "/mesa/:token", element: <MinhaMesa /> },
   { path: "/status", element: <Status /> },
   {
     path: "/app",

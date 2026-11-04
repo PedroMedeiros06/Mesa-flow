@@ -36,6 +36,13 @@
       "when": 1793658604104,
       "tag": "0004_pedidos_e_comandas",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793754021570,
+      "tag": "0005_qr_mesa_e_chamados",
+      "breakpoints": true
     }
   ]
 }

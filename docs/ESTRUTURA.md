@@ -61,6 +61,7 @@ MesaFlow/
 | `/` | dono de restaurante interessado | apresenta o produto, planos, contato via WhatsApp |
 | `/loja/:codigo` | cliente final, no celular | cardápio do restaurante, carrinho, pedido para retirada |
 | `/loja/:codigo/pedido/:id` | cliente final | acompanha o status do pedido |
+| `/mesa/:token` | cliente sentado à mesa, pelo QR | vê a conta aberta da mesa (tempo, quem atendeu, pedidos com andamento, total) e chama o garçom |
 
 ### Acesso
 | Rota | O que faz |
@@ -104,6 +105,7 @@ MesaFlow/
 | `orders` | pedidos de balcão e da vitrine, status, cancelamento |
 | `tabs` | mesas, comandas, pagamentos parciais, divisão da conta |
 | `storefront` | rotas públicas da vitrine |
+| `table-qr` | QR fixo de cada mesa, página pública da mesa e chamado do garçom |
 | `dashboard` | números agregados no banco |
 | `admin` | rotas da equipe MesaFlow |
 | `billing` | assinaturas e faturas (manual; Asaas depois) |
@@ -128,6 +130,7 @@ Regras transversais:
 | 7 | **Pedidos**: balcão + cozinha + lista do dia. Inclui preço promocional no produto e desconto no pedido (permissão `orders.discount`). Sem estoque, o pedido é recusado | 20 pedidos simultâneos deixam o estoque exato |
 | 8 | **Vitrine** pública | pedido do celular aparece na cozinha |
 | 9 | **Comandas e mesas**: cada rodada é um pedido que passa pela cozinha; cancelar item (estoque volta só se a cozinha não começou), transferir rodada, juntar mesas, taxa de serviço de 10% (pode ser tirada), pagamentos parciais com divisão por pessoas, fechar só com a conta paga e reabrir com motivo | dois garçons na mesma mesa mantêm o total certo |
+| 9.1 | **QR da mesa e chamado do garçom**: um QR fixo por mesa (token aleatório; trocar invalida o adesivo antigo, permissão `company.manage`); o cliente vê só a comanda aberta da mesa, sem dados internos; "chamar o garçom" com espera de 1 minuto no servidor; o chamado vai para todos que veem as mesas, com faixa em qualquer tela do painel, som e vibração (onde o navegador deixa) | cliente acompanha a mesa pelo celular e o chamado chega ao salão |
 | 10 | **Dashboard** | números batem com consulta SQL de referência |
 | 11 | **Admin + cobrança manual** | cadastro do restaurante até o primeiro pedido sem ajuda técnica |
 

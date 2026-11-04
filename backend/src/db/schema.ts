@@ -528,3 +528,48 @@ export const tabEvents = app
     ],
   )
   .enableRLS();
+
+// QR fixo de cada mesa. O token vai no QR; trocar o token invalida o adesivo antigo.
+// O QR aponta para a mesa, não para a comanda: mostra a comanda aberta naquele momento.
+export const tableCodes = app
+  .table(
+    "table_codes",
+    {
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      tableNumber: integer("table_number").notNull(),
+      token: text("token").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    },
+    (t) => [
+      primaryKey({ name: "table_codes_pk", columns: [t.companyId, t.tableNumber] }),
+      uniqueIndex("table_codes_token").on(t.token),
+      check("table_codes_table_range", sql`${t.tableNumber} between 1 and 999`),
+    ],
+  )
+  .enableRLS();
+
+// Cliente chamou o garçom pelo QR. Fica aberto até alguém da equipe marcar como atendido.
+export const waiterCalls = app
+  .table(
+    "waiter_calls",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id").notNull(),
+      tabId: uuid("tab_id").notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+      answeredAt: timestamp("answered_at", { withTimezone: true }),
+      answeredBy: uuid("answered_by").references(() => members.id, { onDelete: "set null" }),
+    },
+    (t) => [
+      foreignKey({
+        name: "waiter_calls_tab_fk",
+        columns: [t.companyId, t.tabId],
+        foreignColumns: [tabs.companyId, tabs.id],
+      }).onDelete("cascade"),
+      index("waiter_calls_tab_created").on(t.tabId, t.createdAt),
+      index("waiter_calls_pending").on(t.companyId).where(sql`${t.answeredAt} is null`),
+    ],
+  )
+  .enableRLS();

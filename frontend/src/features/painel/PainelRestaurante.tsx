@@ -6,6 +6,7 @@ import { ApiErro } from "@/lib/http";
 import { sessao } from "@/lib/sessao";
 import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Comanda, CorteComanda } from "@/ui/componentes";
+import { AlertaChamados } from "../mesas/AlertaChamados";
 import { Casca } from "./Casca";
 import { MENU_PAINEL, menuVisivel, podeVer } from "./menu";
 
@@ -38,6 +39,7 @@ export function PainelRestaurante() {
       }
       pessoa={{ nome: member.name, papel: member.role === "owner" ? "Dono" : "Equipe" }}
       aoSair={() => sessao.sair("membro")}
+      alerta={<AlertaChamados />}
     />
   );
 }

@@ -245,3 +245,88 @@
     box-shadow: 0 0 0 8px color-mix(in oklab, var(--laranja) 10%, transparent);
   }
 }
+
+/* ---------- mesa do cliente (QR) ---------- */
+.minha-mesa-meta {
+  display: grid;
+  gap: 4px;
+  color: var(--tinta-2);
+}
+.minha-mesa-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.minha-mesa-vazia {
+  display: grid;
+  gap: 6px;
+}
+.minha-mesa-rodadas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.minha-mesa-rodadas article {
+  display: grid;
+  gap: 10px;
+}
+.minha-mesa-rodada-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--t-lg);
+}
+.andamento {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+.andamento li {
+  padding: 6px 2px;
+  border-radius: var(--raio-sm);
+  background: var(--papel-2);
+  color: var(--tinta-2);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  text-align: center;
+}
+.andamento .andamento-feito {
+  background: var(--laranja);
+  color: var(--sobre-cor);
+}
+.andamento [aria-current="step"] {
+  outline: 2px solid var(--tinta);
+  outline-offset: -2px;
+}
+.minha-mesa-total {
+  display: grid;
+  gap: 8px;
+}
+.minha-mesa-chamar {
+  position: sticky;
+  bottom: 12px;
+  display: grid;
+  gap: 8px;
+}
+.minha-mesa-chamar .btn {
+  min-height: 56px;
+  font-size: var(--t-lg);
+  box-shadow: var(--sombra);
+}
+.minha-mesa-chamado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 14px;
+  border: 2px solid var(--tinta);
+  border-radius: var(--raio-md);
+  background: var(--papel);
+  font-weight: 800;
+  box-shadow: var(--sombra);
+}

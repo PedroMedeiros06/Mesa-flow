@@ -4,9 +4,12 @@ import { can, formatMoney, type Permission, type TabDetail, type TabSummary } fr
 import { ApiErro } from "@/lib/http";
 import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Campo, Dialogo } from "@/ui/componentes";
+import { Icone } from "@/ui/Icone";
 import { minutosDesde } from "../pedidos/ticket";
+import { EVENTO_CHAMADO_ATENDIDO } from "./AlertaChamados";
 import { apiMesas } from "./api";
 import { Conta, type Pode } from "./Conta";
+import { QrMesas } from "./QrMesas";
 import { Rodada } from "./Rodada";
 import "../pedidos/pedidos.css";
 import "./mesas.css";
@@ -27,6 +30,7 @@ export function Mesas() {
     transferir: tem("tabs.transfer"),
     fechar: tem("tabs.close"),
     reabrir: tem("tabs.reopen"),
+    qr: tem("company.manage"),
   };
 
   const [params, setParams] = useSearchParams();
@@ -54,15 +58,16 @@ export function Mesas() {
   if (selecionada) {
     return <Conta key={`${selecionada}-${versao}`} id={selecionada} pode={pode} aoVoltar={() => ir(null)} aoLancar={setLancando} aoIrPara={ir} />;
   }
-  return <Mapa pode={pode} aoAbrir={(c) => ir(c.id)} />;
+  return <Mapa pode={pode} restaurante={atual?.profile.company.name ?? ""} aoAbrir={(c) => ir(c.id)} />;
 }
 
-function Mapa({ pode, aoAbrir }: { pode: Pode; aoAbrir: (c: { id: string }) => void }) {
+function Mapa({ pode, restaurante, aoAbrir }: { pode: Pode; restaurante: string; aoAbrir: (c: { id: string }) => void }) {
   const [escopo, setEscopo] = useState<"abertas" | "hoje">("abertas");
   const [lista, setLista] = useState<TabSummary[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
   const [abrindo, setAbrindo] = useState(false);
+  const [qr, setQr] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -78,10 +83,19 @@ function Mapa({ pode, aoAbrir }: { pode: Pode; aoAbrir: (c: { id: string }) => v
     setLista(null);
     void carregar();
     const t = window.setInterval(() => void carregar(), INTERVALO_MS);
-    return () => window.clearInterval(t);
+    const reler = () => void carregar();
+    window.addEventListener(EVENTO_CHAMADO_ATENDIDO, reler);
+    return () => {
+      window.clearInterval(t);
+      window.removeEventListener(EVENTO_CHAMADO_ATENDIDO, reler);
+    };
   }, [carregar]);
 
   const total = (lista ?? []).reduce((s, m) => s + m.totals.remainingCents, 0);
+  // Quem está chamando o garçom vem primeiro, do chamado mais antigo para o mais novo.
+  const ordenada = [...(lista ?? [])].sort((a, b) =>
+    a.callingSince && b.callingSince ? a.callingSince.localeCompare(b.callingSince) : a.callingSince ? -1 : b.callingSince ? 1 : 0,
+  );
 
   return (
     <div>
@@ -95,6 +109,11 @@ function Mapa({ pode, aoAbrir }: { pode: Pode; aoAbrir: (c: { id: string }) => v
           )}
         </div>
         <div className="direita">
+          {pode.qr && (
+            <Botao variante="claro" icone="qr" onClick={() => setQr(true)}>
+              QR das mesas
+            </Botao>
+          )}
           {pode.lancar && (
             <Botao icone="mais" onClick={() => setAbrindo(true)}>
               Abrir mesa
@@ -125,14 +144,15 @@ function Mapa({ pode, aoAbrir }: { pode: Pode; aoAbrir: (c: { id: string }) => v
       )}
       {lista && lista.length > 0 && (
         <ul className="mapa">
-          {lista.map((m) => {
+          {ordenada.map((m) => {
             const min = minutosDesde(m.openedAt, agora);
             const quitada = m.status === "aberta" && m.totals.totalCents > 0 && m.totals.remainingCents === 0;
+            const chamando = m.callingSince ? minutosDesde(m.callingSince, agora) : null;
             return (
               <li key={m.id}>
                 <button
                   type="button"
-                  className={`mesa ${m.status !== "aberta" ? "mesa-fechada" : ""} ${quitada ? "mesa-quitada" : ""}`}
+                  className={`mesa ${m.status !== "aberta" ? "mesa-fechada" : ""} ${quitada ? "mesa-quitada" : ""} ${chamando !== null ? "mesa-chamando" : ""}`}
                   onClick={() => aoAbrir(m)}
                 >
                   <span className="mesa-num numeral" aria-hidden="true">
@@ -146,12 +166,19 @@ function Mapa({ pode, aoAbrir }: { pode: Pode; aoAbrir: (c: { id: string }) => v
                       : "Fechada"}
                     {quitada && ", paga"}
                   </span>
+                  {chamando !== null && (
+                    <span className="mesa-chamado">
+                      <Icone nome="sino" tamanho={16} /> Chamando {chamando < 1 ? "agora" : `há ${chamando} min`}
+                    </span>
+                  )}
                 </button>
               </li>
             );
           })}
         </ul>
       )}
+
+      {qr && <QrMesas restaurante={restaurante} aoFechar={() => setQr(false)} />}
 
       {abrindo && (
         <AbrirMesa

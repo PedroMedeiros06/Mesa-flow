@@ -6,9 +6,10 @@ import { HealthModule } from "./modules/health/health.module.js";
 import { OrdersModule } from "./modules/orders/orders.module.js";
 import { StockModule } from "./modules/stock/stock.module.js";
 import { StorefrontModule } from "./modules/storefront/storefront.module.js";
+import { TableQrModule } from "./modules/table-qr/table-qr.module.js";
 import { TabsModule } from "./modules/tabs/tabs.module.js";
 
 @Module({
-  imports: [DatabaseModule, AuthModule, HealthModule, CatalogModule, StockModule, OrdersModule, StorefrontModule, TabsModule],
+  imports: [DatabaseModule, AuthModule, HealthModule, CatalogModule, StockModule, OrdersModule, StorefrontModule, TabsModule, TableQrModule],
 })
 export class AppModule {}

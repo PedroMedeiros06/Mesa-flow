@@ -49,6 +49,7 @@ export function Casca({
   topo,
   pessoa,
   aoSair,
+  alerta,
 }: {
   itens: ItemCasca[];
   /** Caminho da tela inicial (o link dela só fica ativo na própria tela). */
@@ -56,6 +57,8 @@ export function Casca({
   topo: ReactNode;
   pessoa: { nome: string; papel: string };
   aoSair: () => Promise<void>;
+  /** Faixa fixa acima do conteúdo, em todas as telas (ex.: mesa chamando o garçom). */
+  alerta?: ReactNode;
 }) {
   const [maisAberto, setMaisAberto] = useState(false);
   const [confirmarSaida, setConfirmarSaida] = useState(false);
@@ -109,6 +112,7 @@ export function Casca({
           </Link>
           <span>{pessoa.nome}</span>
         </div>
+        {alerta}
         <Outlet />
       </main>
 

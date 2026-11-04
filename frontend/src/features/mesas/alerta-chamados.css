@@ -1,0 +1,48 @@
+/* Faixa de chamado do garçom: aparece no topo de qualquer tela do painel */
+.alerta-chamados {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 2px solid var(--tinta);
+  border-radius: var(--raio-md);
+  background: var(--brasa);
+  color: var(--sobre-cor);
+  box-shadow: var(--sombra);
+}
+.alerta-chamados ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.alerta-chamados li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.alerta-texto {
+  flex: 1 1 12em;
+  font-size: var(--t-md);
+}
+.alerta-texto strong {
+  font-size: var(--t-lg);
+}
+.alerta-acoes {
+  display: flex;
+  gap: 8px;
+}
+.alerta-dica {
+  margin: 8px 0 0;
+  font-size: var(--t-sm);
+  font-weight: 700;
+}
+/* Laranja em cima do vermelho some: aqui o botão principal fica escuro. */
+.alerta-chamados .btn-primario {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--fundo);
+}

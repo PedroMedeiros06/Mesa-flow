@@ -11,3 +11,6 @@ coverage/
 .DS_Store
 .vscode/
 .idea/
+
+# Esboços do brainstorming (servidor local de mockups)
+.superpowers/

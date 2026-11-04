@@ -1,11 +1,15 @@
 import {
+  tableCodeSchema,
   tabDetailSchema,
   tabSummarySchema,
+  waiterCallSchema,
+  type TableCode,
   type TabDetail,
   type TabOpenInput,
   type TabPaymentInput,
   type TabRoundInput,
   type TabSummary,
+  type WaiterCall,
 } from "@mesaflow/shared";
 import { sessao } from "@/lib/sessao";
 
@@ -38,4 +42,16 @@ export const apiMesas = {
     detalhe(`/tabs/${id}/payments/${paymentId}/void`, corpo("POST", { reason })),
   fechar: (id: string) => detalhe(`/tabs/${id}/close`, { method: "POST" }),
   reabrir: (id: string, reason: string) => detalhe(`/tabs/${id}/reopen`, corpo("POST", { reason })),
+  atenderChamado: (id: string) => detalhe(`/tabs/${id}/call/answer`, { method: "POST" }),
+  /** Mesas chamando o garçom agora. */
+  async chamados(): Promise<WaiterCall[]> {
+    return waiterCallSchema.array().parse(await (await pedir("/waiter-calls")).json());
+  },
+  /** QR das mesas de `de` até `ate` (as que não têm ganham um). */
+  async qrs(de: number, ate: number): Promise<TableCode[]> {
+    return tableCodeSchema.array().parse(await (await pedir(`/table-codes?from=${de}&to=${ate}`)).json());
+  },
+  async trocarQr(mesa: number): Promise<TableCode> {
+    return tableCodeSchema.parse(await (await pedir(`/table-codes/${mesa}/regenerate`, { method: "POST" })).json());
+  },
 };

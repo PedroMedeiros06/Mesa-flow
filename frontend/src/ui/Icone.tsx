@@ -36,6 +36,8 @@ const caminhos = {
   cima: "M12 19V5M6 11l6-6 6 6",
   baixo: "M12 5v14M6 13l6 6 6-6",
   lapis: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+  sino: "M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4",
+  qr: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2M14 18v2M17 17h3v3h-3z",
   foto: "M4 6h3l2-2h6l2 2h3v13H4zM12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
 } as const;
 

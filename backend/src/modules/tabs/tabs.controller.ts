@@ -136,4 +136,11 @@ export class TabsController {
   ) {
     return this.tabs.reopen(m.company.id, m.member.id, id, body.reason);
   }
+
+  @Post(":id/call/answer")
+  @HttpCode(200)
+  @RequirePermission("tabs.view")
+  answerCall(@CurrentMember() m: MemberProfile, @Param("id", uuid) id: string) {
+    return this.tabs.answerCall(m.company.id, m.member.id, id);
+  }
 }

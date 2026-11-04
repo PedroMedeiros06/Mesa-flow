@@ -8,6 +8,7 @@ import {
   type Order,
   type OrderStatus,
 } from "@mesaflow/shared";
+import { bipar } from "@/lib/bipe";
 import { ApiErro } from "@/lib/http";
 import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Comanda } from "@/ui/componentes";
@@ -27,24 +28,6 @@ const ACAO: Partial<Record<OrderStatus, string>> = {
   preparo: "Marcar pronto",
   pronto: "Entregue",
 };
-
-/** Bipe curto gerado na hora (sem arquivo de áudio). */
-function bipar(ctx: AudioContext) {
-  for (const [atraso, freq] of [
-    [0, 880],
-    [0.18, 1175],
-  ] as const) {
-    const osc = ctx.createOscillator();
-    const ganho = ctx.createGain();
-    osc.frequency.value = freq;
-    ganho.gain.setValueAtTime(0.0001, ctx.currentTime + atraso);
-    ganho.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + atraso + 0.02);
-    ganho.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + atraso + 0.16);
-    osc.connect(ganho).connect(ctx.destination);
-    osc.start(ctx.currentTime + atraso);
-    osc.stop(ctx.currentTime + atraso + 0.18);
-  }
-}
 
 /** Fila da cozinha em três colunas, relida sozinha, com aviso sonoro e impressão de 80 mm. */
 export function Cozinha() {

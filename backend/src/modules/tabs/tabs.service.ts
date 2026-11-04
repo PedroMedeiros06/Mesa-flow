@@ -6,7 +6,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
-import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, min, ne, sql } from "drizzle-orm";
 import {
   DEFAULT_SERVICE_FEE_BPS,
   formatMoney,
@@ -20,7 +20,7 @@ import {
 } from "@mesaflow/shared";
 import type { z } from "zod";
 import { DB, type Database, type Transaction } from "../../db/database.module.js";
-import { members, orderItems, orders, tabEvents, tabPayments, tabs } from "../../db/schema.js";
+import { members, orderItems, orders, tabEvents, tabPayments, tabs, waiterCalls } from "../../db/schema.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { StockService } from "../stock/stock.service.js";
 
@@ -29,6 +29,7 @@ type RodadaData = z.output<typeof tabRoundInputSchema>;
 type PagamentoData = z.output<typeof tabPaymentInputSchema>;
 type Conn = Database | Transaction;
 type Comanda = typeof tabs.$inferSelect;
+type Somas = { itens: number; pago: number; rodadas: number; chamando: Date | string | null };
 
 const HOJE = sql`(now() at time zone 'America/Sao_Paulo')::date`;
 
@@ -131,9 +132,9 @@ export class TabsService {
 
   /** Subtotal (itens não cancelados de rodadas não canceladas), pago e número de rodadas por comanda. */
   private async somas(conn: Conn, companyId: string, ids: string[]) {
-    const mapa = new Map<string, { itens: number; pago: number; rodadas: number }>();
+    const mapa = new Map<string, Somas>();
     if (!ids.length) return mapa;
-    const [itens, pagos, rodadas] = await Promise.all([
+    const [itens, pagos, rodadas, chamados] = await Promise.all([
       conn
         .select({ tabId: orders.tabId, total: sql<number>`coalesce(sum(${orderItems.totalCents}), 0)::int` })
         .from(orderItems)
@@ -157,18 +158,24 @@ export class TabsService {
         .from(orders)
         .where(and(eq(orders.companyId, companyId), inArray(orders.tabId, ids), ne(orders.status, "cancelado")))
         .groupBy(orders.tabId),
+      conn
+        .select({ tabId: waiterCalls.tabId, desde: min(waiterCalls.createdAt) })
+        .from(waiterCalls)
+        .where(and(eq(waiterCalls.companyId, companyId), inArray(waiterCalls.tabId, ids), isNull(waiterCalls.answeredAt)))
+        .groupBy(waiterCalls.tabId),
     ]);
     for (const id of ids) {
       mapa.set(id, {
         itens: itens.find((i) => i.tabId === id)?.total ?? 0,
         pago: pagos.find((p) => p.tabId === id)?.total ?? 0,
         rodadas: rodadas.find((r) => r.tabId === id)?.n ?? 0,
+        chamando: chamados.find((c) => c.tabId === id)?.desde ?? null,
       });
     }
     return mapa;
   }
 
-  private resumo(t: Comanda, openedByName: string | null, s = { itens: 0, pago: 0, rodadas: 0 }): TabSummary {
+  private resumo(t: Comanda, openedByName: string | null, s: Somas = { itens: 0, pago: 0, rodadas: 0, chamando: null }): TabSummary {
     // Fechada: vale o que foi congelado no fechamento.
     const totals =
       t.status === "fechada" && t.closedTotalCents !== null
@@ -191,6 +198,7 @@ export class TabsService {
       openedByName,
       rounds: s.rodadas,
       totals,
+      callingSince: t.status === "aberta" && s.chamando ? new Date(s.chamando).toISOString() : null,
     };
   }
 
@@ -513,6 +521,22 @@ export class TabsService {
       if (restricao(erro) === "tabs_open_table") throw conflito("Esta mesa já tem outra comanda aberta. Feche ou junte antes de reabrir.");
       throw erro;
     }
+    return this.detail(companyId, tabId);
+  }
+
+  // ---------- chamado do garçom ----------
+
+  /** Alguém da equipe foi até a mesa: encerra os chamados abertos dela. */
+  async answerCall(companyId: string, memberId: string, tabId: string): Promise<TabDetail> {
+    await this.conn.transaction(async (tx) => {
+      await this.travar(tx, companyId, tabId);
+      const atendidos = await tx
+        .update(waiterCalls)
+        .set({ answeredAt: new Date(), answeredBy: memberId })
+        .where(and(eq(waiterCalls.companyId, companyId), eq(waiterCalls.tabId, tabId), isNull(waiterCalls.answeredAt)))
+        .returning({ id: waiterCalls.id });
+      if (atendidos.length) await this.evento(tx, companyId, tabId, memberId, "chamado_atendido", "Chamado do cliente atendido");
+    });
     return this.detail(companyId, tabId);
   }
 }

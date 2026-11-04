@@ -21,6 +21,7 @@ import { Icone } from "@/ui/Icone";
 import { hora } from "../pedidos/ticket";
 import { TOM_STATUS } from "../pedidos/Pedidos";
 import { Quantidade } from "../pedidos/Quantidade";
+import { EVENTO_CHAMADO_ATENDIDO } from "./AlertaChamados";
 import { apiMesas } from "./api";
 import { PedirMotivo } from "./PedirMotivo";
 
@@ -32,6 +33,8 @@ export interface Pode {
   transferir: boolean;
   fechar: boolean;
   reabrir: boolean;
+  /** Imprimir e trocar o QR das mesas. */
+  qr: boolean;
 }
 
 type Acao =
@@ -62,6 +65,7 @@ export function Conta({
   const [recado, setRecado] = useState<string | null>(null);
   const [acao, setAcao] = useState<Acao | null>(null);
   const [mudandoTaxa, setMudandoTaxa] = useState(false);
+  const [atendendo, setAtendendo] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -96,6 +100,19 @@ export function Conta({
       setRecado(falha instanceof ApiErro ? falha.message : "Não foi possível mudar a taxa.");
     } finally {
       setMudandoTaxa(false);
+    }
+  }
+
+  async function atenderChamado() {
+    if (!c) return;
+    setAtendendo(true);
+    try {
+      feito(await apiMesas.atenderChamado(c.id), "Chamado atendido.");
+      window.dispatchEvent(new Event(EVENTO_CHAMADO_ATENDIDO));
+    } catch (falha) {
+      setRecado(falha instanceof ApiErro ? falha.message : "Não foi possível marcar o chamado.");
+    } finally {
+      setAtendendo(false);
     }
   }
 
@@ -162,6 +179,15 @@ export function Conta({
         {recado}
       </div>
       {erro && <Aviso>{erro}</Aviso>}
+      {aberta && c.callingSince && (
+        <div className="conta-chamado" role="alert">
+          <Icone nome="sino" tamanho={20} />
+          <span>O cliente chamou o garçom pelo QR às {hora(c.callingSince)}.</span>
+          <Botao pequeno carregando={atendendo} textoCarregando="Marcando..." onClick={() => void atenderChamado()}>
+            Marcar como atendido
+          </Botao>
+        </div>
+      )}
 
       <div className="conta">
         <section className="conta-rodadas" aria-label="Rodadas">

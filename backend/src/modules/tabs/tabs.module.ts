@@ -8,5 +8,6 @@ import { TabsService } from "./tabs.service.js";
   imports: [OrdersModule, StockModule],
   controllers: [TabsController],
   providers: [TabsService],
+  exports: [TabsService],
 })
 export class TabsModule {}
