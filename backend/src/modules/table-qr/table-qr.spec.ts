@@ -195,6 +195,10 @@ describe("QR da mesa e chamado do garçom", () => {
     await como(donoA).post(`/api/tabs/${t.id}/close`).expect(200);
     expect((await como(garcom).get("/api/waiter-calls")).body).toEqual([]);
     await chamar(token).expect(409);
+    // Reaberta, não traz de volta o chamado antigo.
+    const r = (await como(donoA).post(`/api/tabs/${t.id}/reopen`).send({ reason: "Fechou errado" }).expect(200)).body as TabDetail;
+    expect(r.callingSince).toBeNull();
+    expect((await como(garcom).get("/api/waiter-calls")).body).toEqual([]);
   });
 
   it(`limita a ${LIMITE_CHAMADOS} chamados por aparelho em 10 minutos`, async () => {

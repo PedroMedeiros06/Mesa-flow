@@ -108,8 +108,8 @@ export function MinhaMesa() {
 
       {!t ? (
         <Comanda className="minha-mesa-vazia">
-          <strong>Esta mesa ainda não tem conta aberta.</strong>
-          <p className="suave">Assim que o garçom abrir a sua mesa, os pedidos e o total aparecem aqui sozinhos.</p>
+          <strong>Esta mesa está sem conta aberta agora.</strong>
+          <p className="suave">Quando o garçom abrir a mesa, os pedidos e o total aparecem aqui sozinhos.</p>
         </Comanda>
       ) : (
         <>

@@ -495,6 +495,11 @@ export class TabsService {
         })
         .where(eq(tabs.id, tabId));
       await this.evento(tx, companyId, tabId, memberId, "fechada", `Comanda fechada em ${formatMoney(tot.totalCents)}`);
+      // Chamado que ficou aberto não volta se a comanda for reaberta depois.
+      await tx
+        .update(waiterCalls)
+        .set({ answeredAt: new Date(), answeredBy: memberId })
+        .where(and(eq(waiterCalls.companyId, companyId), eq(waiterCalls.tabId, tabId), isNull(waiterCalls.answeredAt)));
     });
     return this.detail(companyId, tabId);
   }
