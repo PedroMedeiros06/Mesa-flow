@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { ConflictException, Injectable } from "@nestjs/common";
 import { supabaseConfig } from "../config/env.js";
+import { chamarAuth } from "./supabase-auth.client.js";
 
 /**
  * Operações de administrador no Supabase Auth (criar usuário, gerar link de senha), com a chave secreta.
@@ -29,7 +30,7 @@ export class SupabaseAuthAdmin extends AuthAdmin {
   }
 
   private async chamar(caminho: string, init: RequestInit): Promise<Response> {
-    return fetch(`${this.config.authUrl}${caminho}`, {
+    return chamarAuth(`${this.config.authUrl}${caminho}`, {
       ...init,
       headers: { apikey: this.secret, Authorization: `Bearer ${this.secret}`, "Content-Type": "application/json" },
     });

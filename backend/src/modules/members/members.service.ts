@@ -152,17 +152,21 @@ export class MembersService {
     if (alvo.role === "owner" && !eu) {
       throw new ForbiddenException({ statusCode: 403, message: "O acesso do dono não pode ser alterado aqui." });
     }
+    // Quem tem menos permissões não mexe em quem tem mais: senão geraria o link de senha
+    // dessa pessoa e entraria no lugar dela.
+    if (!eu) this.podeMexerNas(ator, alvo.permissions.filter(isPermission), "Esta pessoa tem permissões que você não tem.");
     return alvo;
   }
 
-  private podeMexerNas(ator: MemberProfile, permissoes: Permission[]): void {
+  private podeMexerNas(
+    ator: MemberProfile,
+    permissoes: Permission[],
+    message = "Você só pode dar ou tirar permissões que você mesmo tem.",
+  ): void {
     const { role, permissions } = ator.member;
     const falta = permissoes.filter((p) => !can(role, permissions, p));
     if (falta.length) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        message: "Você só pode dar ou tirar permissões que você mesmo tem.",
-      });
+      throw new ForbiddenException({ statusCode: 403, message });
     }
   }
 }

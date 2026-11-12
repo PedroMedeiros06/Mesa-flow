@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import type { SessionTokens } from "@mesaflow/shared";
 import { supabaseConfig } from "../config/env.js";
 
@@ -31,7 +31,7 @@ export class SupabaseAuthClient {
 
   /** Encerra a sessão do token informado. Erros são ignorados: o token expira de qualquer jeito. */
   async signOut(accessToken: string): Promise<void> {
-    await fetch(`${this.config.authUrl}/logout?scope=local`, {
+    await chamarAuth(`${this.config.authUrl}/logout?scope=local`, {
       method: "POST",
       headers: { apikey: this.config.publishableKey, Authorization: `Bearer ${accessToken}` },
     }).catch(() => undefined);
@@ -39,7 +39,7 @@ export class SupabaseAuthClient {
 
   /** Troca o token do link de senha por uma sessão. null quando o link é inválido, vencido ou já usado. */
   async verifyPasswordToken(tokenHash: string): Promise<AuthSession | null> {
-    const res = await fetch(`${this.config.authUrl}/verify`, {
+    const res = await chamarAuth(`${this.config.authUrl}/verify`, {
       method: "POST",
       headers: { apikey: this.config.publishableKey, "Content-Type": "application/json" },
       body: JSON.stringify({ type: "recovery", token_hash: tokenHash }),
@@ -51,7 +51,7 @@ export class SupabaseAuthClient {
 
   /** Grava a senha nova. Devolve a mensagem de recusa (senha fraca, igual à anterior) ou null quando deu certo. */
   async updatePassword(accessToken: string, password: string): Promise<string | null> {
-    const res = await fetch(`${this.config.authUrl}/user`, {
+    const res = await chamarAuth(`${this.config.authUrl}/user`, {
       method: "PUT",
       headers: { apikey: this.config.publishableKey, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
@@ -64,7 +64,7 @@ export class SupabaseAuthClient {
   }
 
   private async token(grantType: string, body: object): Promise<AuthSession | null> {
-    const res = await fetch(`${this.config.authUrl}/token?grant_type=${grantType}`, {
+    const res = await chamarAuth(`${this.config.authUrl}/token?grant_type=${grantType}`, {
       method: "POST",
       headers: { apikey: this.config.publishableKey, "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -84,4 +84,16 @@ function sessao(data: GoTrueTokenResponse): AuthSession {
     refreshToken: data.refresh_token,
     expiresAt: data.expires_at ?? Math.floor(Date.now() / 1000) + data.expires_in,
   };
+}
+
+/** Sem conexão com o Supabase Auth: 503 com mensagem para a pessoa, em vez de erro 500 genérico. */
+export async function chamarAuth(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new ServiceUnavailableException({
+      statusCode: 503,
+      message: "O serviço de login não respondeu. Tente de novo em instantes.",
+    });
+  }
 }

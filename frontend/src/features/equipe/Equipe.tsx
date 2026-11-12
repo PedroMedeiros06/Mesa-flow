@@ -94,7 +94,9 @@ export function Equipe() {
         <ul className="equipe-lista">
           {lista.map((m) => {
             const souEu = m.id === eu.member.id;
-            const editavel = m.role !== "owner" && !souEu;
+            // Mesma regra da API: quem tem menos permissões não mexe em quem tem mais.
+            const editavel =
+              m.role !== "owner" && !souEu && m.permissions.every((p) => can(eu.member.role, eu.member.permissions, p));
             return (
               <li key={m.id} data-bloqueado={m.status === "blocked" ? "" : undefined}>
                 <div className="equipe-nome">

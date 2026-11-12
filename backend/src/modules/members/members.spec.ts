@@ -175,11 +175,15 @@ describe("Equipe e link de senha", () => {
     await como(gerente).post("/api/members").send(novo({ permissions: ["company.manage"] })).expect(403);
     const r = (await como(gerente).post("/api/members").send(novo({ permissions: ["orders.view"] })).expect(201)).body;
 
-    // Joana ganhou "tabs.view" do dono; o gerente não tem essa e não pode tirar.
+    const p = await como(gerente).patch(`/api/members/${r.member.id}`).send({ permissions: [] }).expect(200);
+    expect(p.body.permissions).toEqual([]);
+
+    // Joana ganhou "tabs.view" do dono: agora tem algo que o gerente não tem, e o gerente
+    // não pode mais editar, bloquear nem gerar o link de senha dela (senão entraria como ela).
     await como(dono).patch(`/api/members/${r.member.id}`).send({ permissions: ["orders.view", "tabs.view"] }).expect(200);
-    await como(gerente).patch(`/api/members/${r.member.id}`).send({ permissions: [] }).expect(403);
-    const p = await como(gerente).patch(`/api/members/${r.member.id}`).send({ permissions: ["tabs.view"] }).expect(200);
-    expect(p.body.permissions).toEqual(["tabs.view"]);
+    await como(gerente).patch(`/api/members/${r.member.id}`).send({ permissions: ["orders.view", "tabs.view"] }).expect(403);
+    await como(gerente).patch(`/api/members/${r.member.id}`).send({ status: "blocked" }).expect(403);
+    await como(gerente).post(`/api/members/${r.member.id}/password-link`).expect(403);
 
     await como(gerente).patch(`/api/members/${idDono}`).send({ status: "blocked" }).expect(403);
     await como(gerente).post(`/api/members/${idDono}/password-link`).expect(403);
