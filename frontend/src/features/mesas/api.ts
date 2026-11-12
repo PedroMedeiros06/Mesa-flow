@@ -31,6 +31,8 @@ export const apiMesas = {
   ver: (id: string) => detalhe(`/tabs/${id}`),
   abrir: (dados: TabOpenInput) => detalhe("/tabs", corpo("POST", dados)),
   lancar: (id: string, dados: TabRoundInput) => detalhe(`/tabs/${id}/rounds`, corpo("POST", dados)),
+  /** Pelo número da mesa (Balcão): abre a comanda se a mesa estiver livre. */
+  lancarNaMesa: (mesa: number, dados: TabRoundInput) => detalhe(`/tabs/table/${mesa}/rounds`, corpo("POST", dados)),
   cancelarItem: (id: string, itemId: string, reason: string) =>
     detalhe(`/tabs/${id}/items/${itemId}/cancel`, corpo("POST", { reason })),
   transferir: (id: string, orderId: string, toTabId: string) =>

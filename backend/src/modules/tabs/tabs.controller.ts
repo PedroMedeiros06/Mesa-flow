@@ -16,6 +16,7 @@ import { ZodValidationPipe } from "../../common/zod-validation.pipe.js";
 import { TabsService } from "./tabs.service.js";
 
 const uuid = new ParseUUIDPipe({ version: "4" });
+const mesa = new ZodValidationPipe(z.coerce.number().int().min(1, "Mesa de 1 a 999").max(999, "Mesa de 1 a 999"));
 const filtro = z.object({ scope: z.enum(["abertas", "hoje"]).default("abertas") });
 const corpo = <S extends z.ZodType>(s: S) => new ZodValidationPipe(s);
 
@@ -40,6 +41,17 @@ export class TabsController {
   @RequirePermission("tabs.open")
   open(@CurrentMember() m: MemberProfile, @Body(corpo(tabOpenSchema)) body: z.output<typeof tabOpenSchema>) {
     return this.tabs.open(m.company.id, m.member.id, body);
+  }
+
+  /** Balcão: lança na mesa pelo número; abre a comanda se a mesa estiver livre. */
+  @Post("table/:tableNumber/rounds")
+  @RequirePermission("tabs.open")
+  roundForTable(
+    @CurrentMember() m: MemberProfile,
+    @Param("tableNumber", mesa) tableNumber: number,
+    @Body(corpo(tabRoundInputSchema)) body: z.output<typeof tabRoundInputSchema>,
+  ) {
+    return this.tabs.roundForTable(m.company.id, m.member.id, tableNumber, body);
   }
 
   @Post(":id/rounds")

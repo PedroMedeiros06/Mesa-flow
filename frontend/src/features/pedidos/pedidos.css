@@ -573,3 +573,40 @@
     margin: 2mm 0;
   }
 }
+
+/* Balcão: pagar aqui ou lançar na conta de uma mesa */
+.segmentos.balcao-destino {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.balcao-mesa {
+  display: grid;
+  gap: 10px;
+}
+.balcao-mesas-abertas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.balcao-mesas-abertas > span {
+  font-size: var(--t-sm);
+  margin-right: 4px;
+}
+.balcao-mesas-abertas button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 2px solid var(--linha);
+  border-radius: var(--raio-md);
+  background: var(--papel);
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.balcao-mesas-abertas button[aria-pressed="true"] {
+  border-color: var(--tinta);
+  background: var(--laranja);
+  color: var(--sobre-cor);
+}

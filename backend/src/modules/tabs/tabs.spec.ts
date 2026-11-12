@@ -118,6 +118,45 @@ describe("comandas", () => {
       expect(lista.map((x) => x.label)).toEqual(["Mesa 7", "Balcão — João"]);
     });
 
+    it("balcão lança na mesa pelo número: abre se estiver livre, sem duplicar nem deixar mesa vazia", async () => {
+      const porNumero = (n: number | string, corpo: Record<string, unknown>, token = garcom1) =>
+        como(token).post(`/api/tabs/table/${n}/rounds`).send(corpo);
+
+      const pedido = rodada([{ productId: pizza, quantity: 1 }]);
+      const d1 = tabDetailSchema.parse((await porNumero(5, pedido).expect(201)).body);
+      expect(d1).toMatchObject({ label: "Mesa 5", tableNumber: 5, status: "aberta", rounds: 1 });
+      expect(d1.events.map((e) => e.kind)).toEqual(expect.arrayContaining(["aberta", "rodada"]));
+      // Mesmo pedido de novo (clique duplo, rede caiu): não duplica.
+      const repetido = tabDetailSchema.parse((await porNumero(5, pedido).expect(201)).body);
+      expect(repetido).toMatchObject({ id: d1.id, rounds: 1 });
+      // Outro pedido para a mesma mesa: entra na mesma comanda.
+      const d2 = tabDetailSchema.parse((await porNumero(5, rodada([{ productId: refri, quantity: 1 }])).expect(201)).body);
+      expect(d2).toMatchObject({ id: d1.id, rounds: 2 });
+
+      // Mesa já aberta pelo garçom: o balcão lança nela.
+      const t7 = await abrir(7);
+      expect((await porNumero(7, rodada([{ productId: refri, quantity: 1 }])).expect(201)).body.id).toBe(t7.id);
+
+      // Falta queijo: nada fica gravado, nem a mesa aberta.
+      await porNumero(8, rodada([{ productId: pizza, quantity: 99 }])).expect(409);
+      const abertas = (await como(garcom1).get("/api/tabs").expect(200)).body as TabSummary[];
+      expect(abertas.some((t) => t.tableNumber === 8)).toBe(false);
+
+      // Dois caixas na mesma mesa livre ao mesmo tempo: uma comanda só, com as duas rodadas.
+      const [a, b] = await Promise.all([
+        porNumero(6, rodada([{ productId: refri, quantity: 1 }])),
+        porNumero(6, rodada([{ productId: refri, quantity: 1 }]), garcom2),
+      ]);
+      expect([a.status, b.status]).toEqual([201, 201]);
+      expect(a.body.id).toBe(b.body.id);
+      expect(tabDetailSchema.parse((await como(garcom1).get(`/api/tabs/${a.body.id}`)).body).rounds).toBe(2);
+
+      await porNumero(5, rodada([{ productId: refri, quantity: 1 }]), caixaA).expect(403);
+      await porNumero(0, rodada([{ productId: refri, quantity: 1 }])).expect(400);
+      // Outro restaurante não lança produto deste, nem na mesa 5 dele.
+      await porNumero(5, rodada([{ productId: refri, quantity: 1 }]), donoB).expect(400);
+    });
+
     it("dois garçons lançando na mesma mesa ao mesmo tempo: o total soma tudo", async () => {
       const t = await abrir(3);
       await Promise.all([

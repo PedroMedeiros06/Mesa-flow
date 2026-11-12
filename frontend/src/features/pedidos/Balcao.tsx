@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   can,
   formatMoney,
@@ -9,11 +9,13 @@ import {
   type DiscountKind,
   type Order,
   type PaymentMethod,
+  type TabSummary,
 } from "@mesaflow/shared";
 import { ApiErro } from "@/lib/http";
 import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Campo, Comanda, CorteComanda } from "@/ui/componentes";
 import { Icone } from "@/ui/Icone";
+import { apiMesas } from "../mesas/api";
 import { apiPedidos } from "./api";
 import { CardapioVenda } from "./CardapioVenda";
 import { adicionar, paraPedido, totalLinha, type LinhaCarrinho, type NovaLinha } from "./carrinho";
@@ -24,6 +26,13 @@ import "./pedidos.css";
 export function Balcao() {
   const atual = useSessao("membro");
   const podeDesconto = !!atual && can(atual.profile.member.role, atual.profile.member.permissions, "orders.discount");
+  const podeMesa = !!atual && can(atual.profile.member.role, atual.profile.member.permissions, "tabs.open");
+
+  // Destino do pedido: pago aqui no balcão ou lançado na conta de uma mesa (paga ao fechar a mesa).
+  const [destino, setDestino] = useState<"balcao" | "mesa">("balcao");
+  const [mesa, setMesa] = useState("");
+  const [mesasAbertas, setMesasAbertas] = useState<TabSummary[]>([]);
+  const [naMesa, setNaMesa] = useState<{ label: string; numero: number | null } | null>(null);
 
   const [linhas, setLinhas] = useState<LinhaCarrinho[]>([]);
   const [cliente, setCliente] = useState("");
@@ -42,11 +51,21 @@ export function Balcao() {
 
   const [recarregar, setRecarregar] = useState(0);
 
+  // Atalhos com as mesas abertas agora. Sem permissão de ver mesas, fica só o campo do número.
+  useEffect(() => {
+    if (destino !== "mesa") return;
+    apiMesas
+      .listar("abertas")
+      .then((l) => setMesasAbertas(l.filter((t) => t.tableNumber !== null)))
+      .catch(() => setMesasAbertas([]));
+  }, [destino]);
+
   const mudarPedido = (f: (l: LinhaCarrinho[]) => LinhaCarrinho[]) => {
     setLinhas(f);
     setRequisicao(crypto.randomUUID());
     setErro(null);
     setUltimo(null);
+    setNaMesa(null);
   };
 
   const porNoPedido = (nova: NovaLinha) => mudarPedido((l) => adicionar(l, nova, String(++proximaChave.current)));
@@ -66,8 +85,37 @@ export function Balcao() {
   const troco = pagamento === "dinheiro" && recebidoCents !== null ? recebidoCents - totais.totalCents : null;
   const qtdItens = linhas.reduce((s, l) => s + l.quantidade, 0);
 
+  async function lancarNaMesa() {
+    const numero = /^\d{1,3}$/.test(mesa.trim()) ? Number(mesa.trim()) : 0;
+    if (numero < 1) {
+      setErros({ mesa: "Informe o número da mesa (1 a 999)" });
+      return;
+    }
+    setErros({});
+    setEnviando(true);
+    setErro(null);
+    try {
+      const conta = await apiMesas.lancarNaMesa(numero, { clientRequestId: requisicao, items: paraPedido(linhas) });
+      const rodada = [...conta.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      setNaMesa({ label: conta.label, numero: rodada?.number ?? null });
+      setLinhas([]);
+      setMesa("");
+      setRequisicao(crypto.randomUUID());
+    } catch (falha) {
+      if (falha instanceof ApiErro) {
+        setErro(falha.message === "Dados inválidos" ? (falha.issues[0]?.message ?? falha.message) : falha.message);
+        if (falha.issues.some((i) => i.path.startsWith("items"))) setRecarregar((n) => n + 1);
+      } else {
+        setErro("Não foi possível lançar na mesa. Tente de novo.");
+      }
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   async function enviar(e: FormEvent) {
     e.preventDefault();
+    if (destino === "mesa") return lancarNaMesa();
     const novos: Record<string, string> = {};
     if (!pagamento) novos.paymentMethod = "Escolha a forma de pagamento";
     if (desconto.trim() && valorDesconto === null) {
@@ -132,6 +180,16 @@ export function Balcao() {
             )}
           </div>
 
+          {naMesa && (
+            <div className="balcao-enviado" role="status">
+              <Icone nome="check" />
+              <span>
+                <strong>Lançado na conta da {naMesa.label}.</strong>
+                {naMesa.numero !== null && <> Pedido {naMesa.numero} na cozinha.</>}
+              </span>
+            </div>
+          )}
+
           {ultimo && (
             <div className="balcao-enviado" role="status">
               <Icone nome="check" />
@@ -147,58 +205,115 @@ export function Balcao() {
           <CorteComanda />
 
           <div className="balcao-campos">
-            <Campo
-              rotulo="Nome do cliente (opcional)"
-              value={cliente}
-              onChange={(e) => setCliente(e.target.value)}
-              maxLength={60}
-              placeholder="Para chamar quando ficar pronto"
-            />
-            <fieldset className="pagamento" aria-describedby={erros.paymentMethod ? "erro-pagamento" : undefined}>
-              <legend>Pagamento</legend>
-              <div className="segmentos segmentos-4">
-                {PAYMENT_METHODS.map((m) => (
-                  <button key={m} type="button" aria-pressed={pagamento === m} onClick={() => setPagamento(m)}>
-                    {PAYMENT_LABELS[m]}
-                  </button>
-                ))}
+            {podeMesa && (
+              <div className="segmentos balcao-destino" role="group" aria-label="Para onde vai o pedido">
+                <button type="button" aria-pressed={destino === "balcao"} onClick={() => setDestino("balcao")}>
+                  Pagar no balcão
+                </button>
+                <button type="button" aria-pressed={destino === "mesa"} onClick={() => setDestino("mesa")}>
+                  Conta da mesa
+                </button>
               </div>
-              {erros.paymentMethod && (
-                <span className="campo-erro" id="erro-pagamento">
-                  {erros.paymentMethod}
-                </span>
-              )}
-            </fieldset>
-            {pagamento === "dinheiro" && (
-              <Campo
-                rotulo="Recebido (opcional)"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={recebido}
-                onChange={(e) => setRecebido(e.target.value)}
-                erro={erros.receivedCents}
-                ajuda={troco !== null && troco >= 0 ? `Troco: ${formatMoney(troco)}` : "Para calcular o troco"}
-              />
             )}
-            {podeDesconto && (
-              <div className="desconto">
+            {destino === "mesa" ? (
+              <div className="balcao-mesa">
                 <Campo
-                  rotulo={tipoDesconto === "valor" ? "Desconto em reais (opcional)" : "Desconto em % (opcional)"}
-                  inputMode="decimal"
-                  placeholder={tipoDesconto === "valor" ? "0,00" : "10"}
-                  value={desconto}
-                  onChange={(e) => setDesconto(e.target.value)}
-                  erro={erros.discount}
+                  rotulo="Número da mesa"
+                  inputMode="numeric"
+                  maxLength={3}
+                  value={mesa}
+                  onChange={(e) => {
+                    setMesa(e.target.value.replace(/\D/g, ""));
+                    setErros({});
+                  }}
+                  erro={erros.mesa}
+                  ajuda="Se a mesa estiver livre, ela é aberta agora. O cliente paga tudo ao fechar a mesa."
                 />
-                <div className="segmentos desconto-tipo" role="group" aria-label="Tipo de desconto">
-                  <button type="button" aria-pressed={tipoDesconto === "valor"} onClick={() => setTipoDesconto("valor")}>
-                    R$
-                  </button>
-                  <button type="button" aria-pressed={tipoDesconto === "percentual"} onClick={() => setTipoDesconto("percentual")}>
-                    %
-                  </button>
-                </div>
+                {mesasAbertas.length > 0 && (
+                  <div className="balcao-mesas-abertas" role="group" aria-labelledby="balcao-mesas-titulo">
+                    <span id="balcao-mesas-titulo" className="suave">
+                      Abertas agora:
+                    </span>
+                    {mesasAbertas.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        aria-pressed={mesa === String(t.tableNumber)}
+                        onClick={() => {
+                          setMesa(String(t.tableNumber));
+                          setErros({});
+                        }}
+                      >
+                        {t.tableNumber}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+            ) : (
+              <>
+                <Campo
+                  rotulo="Nome do cliente (opcional)"
+                  value={cliente}
+                  onChange={(e) => setCliente(e.target.value)}
+                  maxLength={60}
+                  placeholder="Para chamar quando ficar pronto"
+                />
+                <fieldset className="pagamento" aria-describedby={erros.paymentMethod ? "erro-pagamento" : undefined}>
+                  <legend>Pagamento</legend>
+                  <div className="segmentos segmentos-4">
+                    {PAYMENT_METHODS.map((m) => (
+                      <button key={m} type="button" aria-pressed={pagamento === m} onClick={() => setPagamento(m)}>
+                        {PAYMENT_LABELS[m]}
+                      </button>
+                    ))}
+                  </div>
+                  {erros.paymentMethod && (
+                    <span className="campo-erro" id="erro-pagamento">
+                      {erros.paymentMethod}
+                    </span>
+                  )}
+                </fieldset>
+                {pagamento === "dinheiro" && (
+                  <Campo
+                    rotulo="Recebido (opcional)"
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={recebido}
+                    onChange={(e) => setRecebido(e.target.value)}
+                    erro={erros.receivedCents}
+                    ajuda={troco !== null && troco >= 0 ? `Troco: ${formatMoney(troco)}` : "Para calcular o troco"}
+                  />
+                )}
+                {podeDesconto && (
+                  <div className="desconto">
+                    <Campo
+                      rotulo={tipoDesconto === "valor" ? "Desconto em reais (opcional)" : "Desconto em % (opcional)"}
+                      inputMode="decimal"
+                      placeholder={tipoDesconto === "valor" ? "0,00" : "10"}
+                      value={desconto}
+                      onChange={(e) => setDesconto(e.target.value)}
+                      erro={erros.discount}
+                    />
+                    <div className="segmentos desconto-tipo" role="group" aria-label="Tipo de desconto">
+                      <button
+                        type="button"
+                        aria-pressed={tipoDesconto === "valor"}
+                        onClick={() => setTipoDesconto("valor")}
+                      >
+                        R$
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={tipoDesconto === "percentual"}
+                        onClick={() => setTipoDesconto("percentual")}
+                      >
+                        %
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -218,14 +333,21 @@ export function Balcao() {
               </>
             )}
             <div className="total">
-              <dt>Total</dt>
+              <dt>{destino === "mesa" ? "Vai para a conta" : "Total"}</dt>
               <dd className="numeral">{formatMoney(totais.totalCents)}</dd>
             </div>
           </dl>
 
           {erro && <Aviso>{erro}</Aviso>}
-          <Botao type="submit" largo carregando={enviando} textoCarregando="Enviando..." disabled={linhas.length === 0} icone="cozinha">
-            Enviar para a cozinha
+          <Botao
+            type="submit"
+            largo
+            carregando={enviando}
+            textoCarregando="Enviando..."
+            disabled={linhas.length === 0}
+            icone="cozinha"
+          >
+            {destino === "mesa" ? (mesa ? `Lançar na mesa ${mesa}` : "Lançar na mesa") : "Enviar para a cozinha"}
           </Botao>
         </Comanda>
       </form>

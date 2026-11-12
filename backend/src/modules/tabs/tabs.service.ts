@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   BadRequestException,
   ConflictException,
@@ -278,6 +279,65 @@ export class TabsService {
       },
     );
     return this.detail(companyId, tabId);
+  }
+
+  /**
+   * Lança na conta da mesa pelo número (usado pelo Balcão). Se a mesa não tem comanda aberta,
+   * abre na mesma transação do pedido: se faltar estoque, nem a comanda nem o pedido ficam gravados.
+   */
+  async roundForTable(companyId: string, memberId: string, tableNumber: number, data: RodadaData): Promise<TabDetail> {
+    const aberta = async () =>
+      (
+        await this.conn
+          .select({ id: tabs.id })
+          .from(tabs)
+          .where(and(eq(tabs.companyId, companyId), eq(tabs.tableNumber, tableNumber), eq(tabs.status, "aberta")))
+      )[0];
+    const existente = await aberta();
+    if (existente) return this.addRound(companyId, memberId, existente.id, data);
+
+    const tabId = randomUUID();
+    const label = `Mesa ${tableNumber}`;
+    const itens = data.items.reduce((s, i) => s + i.quantity, 0);
+    try {
+      const { order } = await this.orders.registrar(
+        companyId,
+        memberId,
+        {
+          clientRequestId: data.clientRequestId,
+          customerName: "",
+          customerPhone: "",
+          notes: data.notes,
+          paymentMethod: null,
+          receivedCents: null,
+          discount: null,
+          items: data.items,
+          origin: "mesa",
+          tabId,
+        },
+        async (tx) => {
+          await tx.insert(tabs).values({
+            id: tabId,
+            companyId,
+            label,
+            tableNumber,
+            serviceFeeBps: DEFAULT_SERVICE_FEE_BPS,
+            openedBy: memberId,
+          });
+          await this.evento(tx, companyId, tabId, memberId, "aberta", `Comanda aberta pelo balcão: ${label}`);
+          await this.evento(tx, companyId, tabId, memberId, "rodada", `Rodada lançada com ${itens} ${itens === 1 ? "item" : "itens"}`);
+        },
+      );
+      // Pedido repetido (mesmo clientRequestId) devolve a comanda onde ele já está.
+      return this.detail(companyId, order.tabId ?? tabId);
+    } catch (erro) {
+      // Outra pessoa abriu a mesa no mesmo instante: lança na comanda dela.
+      if (restricao(erro) === "tabs_open_table") {
+        const agora = await aberta();
+        if (agora) return this.addRound(companyId, memberId, agora.id, data);
+      }
+      throw erro;
+    }
   }
 
   // ---------- cancelar item e transferir ----------
