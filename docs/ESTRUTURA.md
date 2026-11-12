@@ -67,8 +67,8 @@ MesaFlow/
 | Rota | O que faz |
 |---|---|
 | `/entrar` | login do restaurante (código + CPF + senha) |
-| `/esqueci-senha`, `/redefinir-senha` | recuperação por e-mail |
-| `/convite` | dono ou funcionário define a senha no primeiro acesso |
+| `/esqueci-senha` | orienta a pedir um link de senha nova ao responsável pela equipe (sem e-mail por enquanto) |
+| `/senha?token=` | quem recebeu o link (cadastro novo ou senha esquecida) cria a senha; vale uma vez |
 | `/admin/entrar` | login da equipe MesaFlow |
 
 ### Painel do restaurante (`/app`)
@@ -99,7 +99,7 @@ MesaFlow/
 | `health` | saúde da API e do banco |
 | `auth` | login, sessão, convite, recuperação de senha |
 | `companies` | restaurante, configurações, plano |
-| `members` | equipe e permissões |
+| `members` | equipe, permissões, bloqueio e link de senha (gerado sem e-mail, enviado pelo dono) |
 | `catalog` | categorias, produtos, adicionais, fotos, descontos |
 | `stock` | ingredientes, ficha técnica, movimentações |
 | `orders` | pedidos de balcão e da vitrine, status, cancelamento |
@@ -131,6 +131,7 @@ Regras transversais:
 | 8 | **Vitrine** pública | pedido do celular aparece na cozinha |
 | 9 | **Comandas e mesas**: cada rodada é um pedido que passa pela cozinha; cancelar item (estoque volta só se a cozinha não começou), transferir rodada, juntar mesas, taxa de serviço de 10% (pode ser tirada), pagamentos parciais com divisão por pessoas, fechar só com a conta paga e reabrir com motivo | dois garçons na mesma mesa mantêm o total certo |
 | 9.1 | **QR da mesa e chamado do garçom**: um QR fixo por mesa (token aleatório; trocar invalida o adesivo antigo, permissão `company.manage`); o cliente vê só a comanda aberta da mesa, sem dados internos; "chamar o garçom" com espera de 1 minuto no servidor; o chamado vai para todos que veem as mesas, com faixa em qualquer tela do painel, som e vibração (onde o navegador deixa) | cliente acompanha a mesa pelo celular e o chamado chega ao salão |
+| 9.2 | **Equipe e senha**: cadastrar funcionário (nome, CPF, e-mail, permissões), editar permissões, bloquear e desbloquear, e gerar o link de senha que o responsável manda pelo WhatsApp. Ninguém mexe no dono nem no próprio acesso, e só se dá ou tira permissão que a própria pessoa tem. O link sai do Supabase Auth sem enviar e-mail (`generate_link`) | dono cadastra o garçom e o garçom entra sem ajuda técnica |
 | 10 | **Dashboard** | números batem com consulta SQL de referência |
 | 11 | **Admin + cobrança manual** | cadastro do restaurante até o primeiro pedido sem ajuda técnica |
 

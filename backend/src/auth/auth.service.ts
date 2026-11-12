@@ -1,5 +1,5 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
-import type { AdminSession, MemberSession, SessionTokens } from "@mesaflow/shared";
+import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
+import type { AdminSession, MemberSession, SessionTokens, SetPasswordResult } from "@mesaflow/shared";
 import { IdentityRepository } from "./identity.repository.js";
 import { SupabaseAuthClient } from "./supabase-auth.client.js";
 
@@ -55,6 +55,23 @@ export class AuthService {
     const session = await this.supabase.refresh(refreshToken);
     if (!session) throw new UnauthorizedException("Sessão expirada. Entre novamente.");
     return tokens(session);
+  }
+
+  /** Página /senha: o link (convite ou troca de senha) vale uma vez; a sessão aberta por ele é encerrada no fim. */
+  async setPassword(token: string, password: string): Promise<SetPasswordResult> {
+    const session = await this.supabase.verifyPasswordToken(token);
+    if (!session) throw new BadRequestException("Este link não vale mais. Peça um link novo ao responsável pela equipe.");
+    try {
+      const identity = await this.identities.findMemberByAuthUser(session.userId);
+      if (!identity) throw new BadRequestException("Este link não vale mais. Peça um link novo ao responsável pela equipe.");
+      if (!identity.memberActive) throw new ForbiddenException("Seu acesso foi bloqueado pelo restaurante.");
+      const recusa = await this.supabase.updatePassword(session.accessToken, password);
+      if (recusa) throw new BadRequestException(recusa);
+      const { member, company } = identity.profile;
+      return { name: member.name, companyCode: company.code, companyName: company.name };
+    } finally {
+      await this.supabase.signOut(session.accessToken);
+    }
   }
 
   async logout(accessToken: string): Promise<void> {

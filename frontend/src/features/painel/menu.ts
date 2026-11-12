@@ -20,7 +20,7 @@ export const MENU_PAINEL: ItemMenu[] = [
   { id: "pedidos", nome: "Pedidos", icone: "pedidos", caminho: "/app/pedidos", permissao: "orders.view", etapa: 7 },
   { id: "cardapio", nome: "Cardápio", icone: "cardapio", caminho: "/app/cardapio", permissao: "catalog.manage", etapa: 5 },
   { id: "estoque", nome: "Estoque", icone: "estoque", caminho: "/app/estoque", permissao: "stock.manage", etapa: 6 },
-  { id: "equipe", nome: "Equipe", icone: "equipe", caminho: "/app/equipe", permissao: "members.manage", etapa: 11 },
+  { id: "equipe", nome: "Equipe", icone: "equipe", caminho: "/app/equipe", permissao: "members.manage", etapa: 9 },
   { id: "ajustes", nome: "Ajustes", icone: "ajustes", caminho: "/app/ajustes", permissao: "company.manage", etapa: 11 },
 ];
 

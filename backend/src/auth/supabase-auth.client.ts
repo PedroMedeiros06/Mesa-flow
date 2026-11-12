@@ -37,6 +37,32 @@ export class SupabaseAuthClient {
     }).catch(() => undefined);
   }
 
+  /** Troca o token do link de senha por uma sessão. null quando o link é inválido, vencido ou já usado. */
+  async verifyPasswordToken(tokenHash: string): Promise<AuthSession | null> {
+    const res = await fetch(`${this.config.authUrl}/verify`, {
+      method: "POST",
+      headers: { apikey: this.config.publishableKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "recovery", token_hash: tokenHash }),
+    });
+    if (res.status === 400 || res.status === 403 || res.status === 404) return null;
+    if (!res.ok) throw new Error(`Supabase Auth respondeu ${res.status} em /verify`);
+    return sessao((await res.json()) as GoTrueTokenResponse);
+  }
+
+  /** Grava a senha nova. Devolve a mensagem de recusa (senha fraca, igual à anterior) ou null quando deu certo. */
+  async updatePassword(accessToken: string, password: string): Promise<string | null> {
+    const res = await fetch(`${this.config.authUrl}/user`, {
+      method: "PUT",
+      headers: { apikey: this.config.publishableKey, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    if (res.ok) return null;
+    const corpo = (await res.json().catch(() => ({}))) as { error_code?: string };
+    if (corpo.error_code === "same_password") return "A senha nova precisa ser diferente da anterior.";
+    if (corpo.error_code === "weak_password") return "Senha fraca. Use uma senha mais longa e difícil de adivinhar.";
+    throw new Error(`Supabase Auth respondeu ${res.status} ao trocar a senha.`);
+  }
+
   private async token(grantType: string, body: object): Promise<AuthSession | null> {
     const res = await fetch(`${this.config.authUrl}/token?grant_type=${grantType}`, {
       method: "POST",
@@ -47,12 +73,15 @@ export class SupabaseAuthClient {
     // são falha de configuração e não podem virar "senha incorreta".
     if (res.status === 400) return null;
     if (!res.ok) throw new Error(`Supabase Auth respondeu ${res.status} em grant_type=${grantType}`);
-    const data = (await res.json()) as GoTrueTokenResponse;
-    return {
-      userId: data.user.id,
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: data.expires_at ?? Math.floor(Date.now() / 1000) + data.expires_in,
-    };
+    return sessao((await res.json()) as GoTrueTokenResponse);
   }
+}
+
+function sessao(data: GoTrueTokenResponse): AuthSession {
+  return {
+    userId: data.user.id,
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    expiresAt: data.expires_at ?? Math.floor(Date.now() / 1000) + data.expires_in,
+  };
 }

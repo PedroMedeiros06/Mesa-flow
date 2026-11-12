@@ -1,0 +1,98 @@
+/* Tela /app/equipe */
+.equipe-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 960px;
+  border-top: 2px solid var(--tinta);
+}
+.equipe-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px 16px;
+  align-items: center;
+  padding: 14px 4px;
+  border-bottom: 2px dashed var(--linha);
+}
+.equipe-lista li[data-bloqueado] .equipe-nome {
+  opacity: 0.6;
+}
+.equipe-nome {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.equipe-nome .suave {
+  font-size: var(--t-sm);
+  overflow-wrap: anywhere;
+}
+.equipe-permissoes {
+  font-size: var(--t-sm);
+  color: var(--tinta-2);
+}
+.equipe-status,
+.equipe-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.equipe-form {
+  display: grid;
+  gap: 16px;
+}
+.equipe-campos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.equipe-grupos {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px 24px;
+}
+.equipe-grupos legend {
+  font-weight: 800;
+  font-size: var(--t-lg);
+  margin-bottom: 10px;
+}
+.equipe-grupo {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.equipe-grupo h3 {
+  font-size: var(--t-md);
+  color: var(--tinta-2);
+}
+.equipe-bloquear {
+  margin-right: auto;
+}
+.equipe-link {
+  width: 100%;
+  font: inherit;
+  font-size: var(--t-sm);
+  padding: 10px 12px;
+  border: 2px solid var(--tinta);
+  border-radius: var(--raio-md);
+  background: var(--papel, transparent);
+  color: inherit;
+}
+
+@media (max-width: 640px) {
+  .equipe-lista li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .equipe-status,
+  .equipe-acoes {
+    justify-content: flex-start;
+  }
+  .equipe-campos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -4,11 +4,13 @@ import {
   adminLoginSchema,
   refreshSchema,
   restaurantLoginSchema,
+  setPasswordSchema,
   type AdminProfile,
   type AdminSession,
   type MemberProfile,
   type MemberSession,
   type SessionTokens,
+  type SetPasswordResult,
 } from "@mesaflow/shared";
 import type { z } from "zod";
 import { ZodValidationPipe } from "../common/zod-validation.pipe.js";
@@ -35,6 +37,16 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   refresh(@Body(new ZodValidationPipe(refreshSchema)) body: z.output<typeof refreshSchema>): Promise<SessionTokens> {
     return this.auth.refresh(body.refreshToken);
+  }
+
+  // Público: quem chega pelo link de convite ou de troca de senha ainda não tem sessão.
+  @Post("password")
+  @HttpCode(200)
+  @UseGuards(ThrottlerGuard)
+  setPassword(
+    @Body(new ZodValidationPipe(setPasswordSchema)) body: z.output<typeof setPasswordSchema>,
+  ): Promise<SetPasswordResult> {
+    return this.auth.setPassword(body.token, body.password);
   }
 
   @Post("logout")

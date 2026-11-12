@@ -10,7 +10,9 @@ import { Mesas } from "@/features/mesas/Mesas";
 import { Balcao } from "@/features/pedidos/Balcao";
 import { Cozinha } from "@/features/pedidos/Cozinha";
 import { Pedidos } from "@/features/pedidos/Pedidos";
+import { DefinirSenha } from "@/features/acesso/DefinirSenha";
 import { EsqueciSenha } from "@/features/acesso/EsqueciSenha";
+import { Equipe } from "@/features/equipe/Equipe";
 import { PainelAdmin } from "@/features/admin/PainelAdmin";
 import { MENU_PAINEL } from "@/features/painel/menu";
 import { EmBreve, InicioRestaurante, PainelRestaurante, RequerPermissao } from "@/features/painel/PainelRestaurante";
@@ -39,6 +41,7 @@ const TELAS: Record<string, React.ReactNode> = {
   pedidos: <Pedidos />,
   cardapio: <Cardapio />,
   estoque: <Estoque />,
+  equipe: <Equipe />,
 };
 
 const telasRestaurante: RouteObject[] = MENU_PAINEL.filter((item) => item.caminho !== "/app").map((item) => ({
@@ -54,6 +57,7 @@ export const rotas: RouteObject[] = [
   { path: "/", element: <Site /> },
   { path: "/entrar", element: <Entrar /> },
   { path: "/esqueci-senha", element: <EsqueciSenha /> },
+  { path: "/senha", element: <DefinirSenha /> },
   { path: "/loja/:codigo", element: <Loja /> },
   { path: "/loja/:codigo/pedido/:id", element: <AcompanharPedido /> },
   { path: "/mesa/:token", element: <MinhaMesa /> },

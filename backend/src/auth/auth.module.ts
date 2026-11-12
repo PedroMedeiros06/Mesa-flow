@@ -4,6 +4,7 @@ import { AdminAuthController, AuthController } from "./auth.controller.js";
 import { AuthService } from "./auth.service.js";
 import { AdminGuard, MemberGuard } from "./guards.js";
 import { DrizzleIdentityRepository, IdentityRepository } from "./identity.repository.js";
+import { AuthAdmin, SupabaseAuthAdmin } from "./supabase-admin.client.js";
 import { SupabaseAuthClient } from "./supabase-auth.client.js";
 import { TokenVerifier } from "./token-verifier.js";
 
@@ -18,9 +19,10 @@ import { TokenVerifier } from "./token-verifier.js";
     SupabaseAuthClient,
     MemberGuard,
     AdminGuard,
+    { provide: AuthAdmin, useClass: SupabaseAuthAdmin },
     { provide: TokenVerifier, useFactory: () => TokenVerifier.fromSupabase() },
     { provide: IdentityRepository, useClass: DrizzleIdentityRepository },
   ],
-  exports: [MemberGuard, AdminGuard, TokenVerifier, IdentityRepository],
+  exports: [MemberGuard, AdminGuard, AuthAdmin, TokenVerifier, IdentityRepository],
 })
 export class AuthModule {}

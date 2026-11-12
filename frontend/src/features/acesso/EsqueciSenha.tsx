@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { Aviso, Marca } from "@/ui/componentes";
 import "./acesso.css";
 
-// A recuperação por e-mail entra junto com o convite da equipe (etapa 11).
+// Sem servidor de e-mail próprio ainda: o link de senha nova sai da tela Equipe, gerado pelo responsável.
 export function EsqueciSenha() {
   return (
     <div className="entrar entrar-unica">
@@ -11,8 +11,8 @@ export function EsqueciSenha() {
         <div className="entrar-caixa">
           <h1>Esqueci minha senha</h1>
           <Aviso tom="info">
-            A troca de senha por e-mail ainda está sendo preparada. Por enquanto, peça ao dono do restaurante para
-            redefinir o seu acesso.
+            Peça ao dono ou a quem cuida da equipe um link de senha nova. Ele gera o link na tela Equipe e manda para
+            você pelo WhatsApp.
           </Aviso>
           <Link className="entrar-link" to="/entrar">
             Voltar para entrar

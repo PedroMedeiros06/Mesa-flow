@@ -80,3 +80,13 @@
   font-stretch: 82%;
   font-weight: 800;
 }
+
+/* /senha: depois de criar a senha, o código do restaurante em destaque */
+.senha-codigo {
+  display: grid;
+  gap: 4px;
+}
+.senha-codigo .numeral {
+  font-size: var(--t-4xl);
+  letter-spacing: 0.08em;
+}
