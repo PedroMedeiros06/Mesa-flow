@@ -1,0 +1,138 @@
+/* Tela Início: resumo do dia */
+.resumo {
+  /* Laranja das barras: tom da marca conferido contra o papel de cada tema (contraste >= 3:1). */
+  --barra: #e85f0c;
+  display: grid;
+  gap: 16px;
+  margin: 8px 0 24px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .resumo {
+    --barra: #e86a1f;
+  }
+}
+:root[data-theme="dark"] .resumo {
+  --barra: #e86a1f;
+}
+
+.resumo .comanda {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.resumo h2 {
+  font-size: var(--t-lg);
+  margin-bottom: 4px;
+}
+.resumo-numeros {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.resumo-numeros .numeral {
+  font-size: var(--t-3xl);
+  line-height: 1.05;
+}
+.resumo-principal .numeral {
+  font-size: var(--t-4xl);
+}
+.resumo-link {
+  color: var(--laranja-texto);
+  font-weight: 700;
+}
+.resumo-blocos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.resumo-origens {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.resumo-origens div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 2px dashed var(--linha);
+  padding-bottom: 6px;
+}
+.resumo-origens dd {
+  margin: 0;
+  font-weight: 700;
+}
+.resumo-nota {
+  font-size: var(--t-sm);
+}
+.resumo-top {
+  margin: 0;
+  padding-left: 1.4em;
+  display: grid;
+  gap: 8px;
+}
+.resumo-top li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 6.5em;
+  gap: 10px;
+}
+.resumo-top li > :last-child {
+  text-align: right;
+}
+
+.resumo-semana-valor {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.resumo-semana-valor strong {
+  font-size: var(--t-xl);
+}
+.barras {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  height: 140px;
+}
+.barra {
+  all: unset;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 6px;
+  cursor: pointer;
+  min-width: 0;
+}
+.barra-area {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  border-bottom: 1px solid var(--linha);
+}
+.barra-valor {
+  width: min(28px, 70%);
+  background: var(--barra);
+  border-radius: 4px 4px 0 0;
+  opacity: 0.5;
+}
+.barra[data-ativa] .barra-valor {
+  opacity: 1;
+}
+.barra-dia {
+  font-size: var(--t-sm);
+  color: var(--tinta-2);
+  text-align: center;
+}
+.barra[data-ativa] .barra-dia {
+  color: var(--tinta);
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .resumo-numeros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .resumo-principal {
+    grid-column: 1 / -1;
+  }
+}

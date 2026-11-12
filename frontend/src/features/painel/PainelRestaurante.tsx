@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
-import type { Permission } from "@mesaflow/shared";
+import { can, type Permission } from "@mesaflow/shared";
 import { primeiroNome, saudacao } from "@/lib/formato";
 import { ApiErro } from "@/lib/http";
 import { sessao } from "@/lib/sessao";
 import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Comanda, CorteComanda } from "@/ui/componentes";
+import { ResumoDia } from "../inicio/ResumoDia";
 import { AlertaChamados } from "../mesas/AlertaChamados";
 import { Casca } from "./Casca";
 import { MENU_PAINEL, menuVisivel, podeVer } from "./menu";
@@ -89,6 +90,7 @@ export function InicioRestaurante() {
           </p>
         </div>
       </div>
+      {can(member.role, member.permissions, "reports.view") && <ResumoDia />}
       <div className="vazio">
         <Comanda>
           <div className="comanda-linha suave">
@@ -107,7 +109,6 @@ export function InicioRestaurante() {
           </p>
           <LinkVitrine codigo={company.code} />
         </Comanda>
-        <Aviso tom="info">O resumo do dia (vendas, pedidos e mais vendidos) aparece aqui na etapa 10.</Aviso>
       </div>
     </>
   );
