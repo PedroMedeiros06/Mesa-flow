@@ -6,10 +6,12 @@ import { ApiErro } from "@/lib/http";
 import { sessao } from "@/lib/sessao";
 import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Campo, CampoCodigo, Comanda, CorteComanda, Marca } from "@/ui/componentes";
+import { codigoGuardado, guardarCodigo } from "./codigo";
 import { errosPorCampo, type ErrosCampos } from "./erros";
 import "./acesso.css";
 
 type CampoLogin = "companyCode" | "cpf" | "password";
+
 
 export function Entrar() {
   const atual = useSessao("membro");
@@ -18,7 +20,7 @@ export function Entrar() {
   const estado = local.state as { de?: string; motivo?: string } | null;
   const destino = estado?.de ?? "/app";
 
-  const [codigo, setCodigo] = useState("");
+  const [codigo, setCodigo] = useState(codigoGuardado);
   const [cpf, setCpf] = useState("");
   const [senha, setSenha] = useState("");
   const [erros, setErros] = useState<ErrosCampos<CampoLogin>>({});
@@ -40,6 +42,7 @@ export function Entrar() {
     setEnviando(true);
     try {
       await sessao.entrarRestaurante(dados);
+      guardarCodigo(valido.data.companyCode);
       navegar(destino, { replace: true });
     } catch (erro) {
       if (erro instanceof ApiErro && erro.issues.length) setErros(errosPorCampo<CampoLogin>(erro.issues));

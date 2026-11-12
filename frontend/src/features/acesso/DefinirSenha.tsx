@@ -4,6 +4,7 @@ import { passwordSchema, type SetPasswordResult } from "@mesaflow/shared";
 import { ApiErro } from "@/lib/http";
 import { Aviso, Botao, Campo, classeBotao, Marca } from "@/ui/componentes";
 import { definirSenha } from "../equipe/api";
+import { guardarCodigo } from "./codigo";
 import "./acesso.css";
 
 /**
@@ -32,7 +33,9 @@ export function DefinirSenha() {
     if (novos.senha || novos.repetir) return;
     setEnviando(true);
     try {
-      setPronto(await definirSenha({ token, password: senha }));
+      const r = await definirSenha({ token, password: senha });
+      guardarCodigo(r.companyCode);
+      setPronto(r);
     } catch (falha) {
       setErro(falha instanceof ApiErro ? falha.message : "Não foi possível salvar. Tente de novo.");
     } finally {
