@@ -228,3 +228,17 @@
     font-size: var(--t-3xl);
   }
 }
+
+/* Rodapé com os textos legais */
+.lp-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-top: 24px;
+  padding-bottom: 32px;
+  font-size: var(--t-sm);
+}
+.lp-rodape a {
+  color: var(--tinta-2);
+  font-weight: 700;
+}

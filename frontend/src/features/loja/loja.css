@@ -330,3 +330,16 @@
   font-weight: 800;
   box-shadow: var(--sombra);
 }
+
+/* Aviso de dados no pedido e link de privacidade no rodapé */
+.loja-aviso-dados {
+  font-size: var(--t-sm);
+}
+.loja-aviso-dados a,
+.loja-privacidade {
+  color: var(--laranja-texto);
+  font-weight: 700;
+}
+.loja-privacidade {
+  margin-left: 12px;
+}

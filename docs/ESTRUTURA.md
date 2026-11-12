@@ -61,6 +61,7 @@ MesaFlow/
 | `/` | dono de restaurante interessado | apresenta o produto, planos, contato via WhatsApp |
 | `/loja/:codigo` | cliente final, no celular | cardápio do restaurante, carrinho, pedido para retirada |
 | `/loja/:codigo/pedido/:id` | cliente final | acompanha o status do pedido |
+| `/termos`, `/privacidade` | qualquer pessoa | termos de uso e política de privacidade (LGPD). **Texto-base para revisão jurídica**, com campos entre colchetes para os dados da empresa |
 | `/mesa/:token` | cliente sentado à mesa, pelo QR | vê a conta aberta da mesa (tempo, quem atendeu, pedidos com andamento, total) e chama o garçom |
 
 ### Acesso

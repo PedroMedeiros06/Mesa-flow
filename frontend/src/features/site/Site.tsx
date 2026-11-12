@@ -153,6 +153,11 @@ export function Site() {
           </a>
         </div>
       </section>
+      <footer className="lp lp-rodape">
+        <Link to="/termos">Termos de uso</Link>
+        <Link to="/privacidade">Privacidade</Link>
+        <Link to="/entrar">Entrar no painel</Link>
+      </footer>
     </>
   );
 }

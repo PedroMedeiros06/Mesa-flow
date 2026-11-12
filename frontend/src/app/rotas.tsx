@@ -18,6 +18,7 @@ import { PainelAdmin } from "@/features/admin/PainelAdmin";
 import { Restaurantes } from "@/features/admin/Restaurantes";
 import { MENU_PAINEL } from "@/features/painel/menu";
 import { EmBreve, InicioRestaurante, PainelRestaurante, RequerPermissao } from "@/features/painel/PainelRestaurante";
+import { Privacidade, Termos } from "@/features/site/Legal";
 import { Site } from "@/features/site/Site";
 import { Aviso, Marca, classeBotao } from "@/ui/componentes";
 import { Status } from "./Status";
@@ -65,6 +66,8 @@ export const rotas: RouteObject[] = [
   { path: "/loja/:codigo/pedido/:id", element: <AcompanharPedido /> },
   { path: "/mesa/:token", element: <MinhaMesa /> },
   { path: "/status", element: <Status /> },
+  { path: "/termos", element: <Termos /> },
+  { path: "/privacidade", element: <Privacidade /> },
   {
     path: "/app",
     element: <PainelRestaurante />,

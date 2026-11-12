@@ -176,6 +176,9 @@ export function Loja() {
 
       <footer className="loja-rodape suave">
         Cardápio feito com <Marca className="loja-marca" />
+        <Link to="/privacidade" className="loja-privacidade">
+          Privacidade
+        </Link>
       </footer>
 
       {linhas.length > 0 && (
@@ -351,6 +354,10 @@ function Carrinho({
             maxLength={300}
             placeholder="Ex.: chego às 19h"
           />
+          <p className="suave loja-aviso-dados">
+            Seu nome e telefone vão só para o restaurante, para falar com você sobre este pedido.{" "}
+            <Link to="/privacidade">Privacidade</Link>
+          </p>
           {erro && <Aviso>{erro}</Aviso>}
           <div className="loja-total">
             <span>Total</span>

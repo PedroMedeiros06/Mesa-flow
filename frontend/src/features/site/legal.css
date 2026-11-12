@@ -1,0 +1,47 @@
+/* Termos de uso e Política de privacidade */
+.legal {
+  max-width: 72ch;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+.legal-topo {
+  margin-bottom: 32px;
+}
+.legal h1 {
+  font-size: var(--t-4xl);
+  font-stretch: 82%;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+.legal h2 {
+  font-size: var(--t-xl);
+  margin: 28px 0 8px;
+}
+.legal p,
+.legal li {
+  line-height: 1.6;
+}
+.legal ul {
+  padding-left: 1.2em;
+  display: grid;
+  gap: 6px;
+}
+.legal a {
+  color: var(--laranja-texto);
+  font-weight: 700;
+}
+.legal-rascunho {
+  border: 2px dashed var(--brasa);
+  border-radius: var(--raio-md);
+  padding: 10px 12px;
+  margin: 12px 0;
+  font-weight: 700;
+}
+.legal-rodape {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 2px dashed var(--linha);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
