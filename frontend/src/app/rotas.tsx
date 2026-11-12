@@ -1,6 +1,7 @@
 import { createBrowserRouter, Link, type RouteObject } from "react-router";
 import { Entrar } from "@/features/acesso/Entrar";
 import { EntrarAdmin } from "@/features/acesso/EntrarAdmin";
+import { Ajustes } from "@/features/ajustes/Ajustes";
 import { Cardapio } from "@/features/cardapio/Cardapio";
 import { Estoque } from "@/features/estoque/Estoque";
 import { AcompanharPedido } from "@/features/loja/AcompanharPedido";
@@ -42,6 +43,7 @@ const TELAS: Record<string, React.ReactNode> = {
   cardapio: <Cardapio />,
   estoque: <Estoque />,
   equipe: <Equipe />,
+  ajustes: <Ajustes />,
 };
 
 const telasRestaurante: RouteObject[] = MENU_PAINEL.filter((item) => item.caminho !== "/app").map((item) => ({

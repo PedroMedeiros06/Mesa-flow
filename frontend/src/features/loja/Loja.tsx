@@ -33,7 +33,8 @@ export function mascaraTelefone(texto: string) {
 
 export function linkWhatsapp(numero: string, texto?: string) {
   const d = numero.replace(/\D/g, "");
-  const comPais = d.startsWith("55") ? d : `55${d}`;
+  // DDD + número tem 10 ou 11 dígitos (o DDD 55 existe, no RS); com mais que isso já veio com o país.
+  const comPais = d.length <= 11 ? `55${d}` : d;
   return `https://wa.me/${comPais}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
 }
 

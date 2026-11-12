@@ -98,7 +98,7 @@ MesaFlow/
 |---|---|
 | `health` | saúde da API e do banco |
 | `auth` | login, sessão, convite, recuperação de senha |
-| `companies` | restaurante, configurações, plano |
+| `companies` | dados do restaurante (tela Ajustes: nome, WhatsApp do cardápio online, razão social, CNPJ/CPF). A taxa de serviço padrão por restaurante precisa de migração e ainda não existe: toda mesa abre com 10% |
 | `members` | equipe, permissões, bloqueio e link de senha (gerado sem e-mail, enviado pelo dono) |
 | `catalog` | categorias, produtos, adicionais, fotos, descontos |
 | `stock` | ingredientes, ficha técnica, movimentações |

@@ -1,5 +1,6 @@
 export * from "./auth.js";
 export * from "./catalog.js";
+export * from "./company.js";
 export * from "./dashboard.js";
 export * from "./health.js";
 export * from "./members.js";
