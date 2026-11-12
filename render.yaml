@@ -5,7 +5,7 @@ services:
     runtime: node
     plan: starter
     # Região: escolha a mais perto da região do projeto Supabase (veja em Project Settings > General).
-    buildCommand: npm ci && npm run build:shared && npm run build -w @mesaflow/backend
+    buildCommand: npm ci --include=dev && npm run build:shared && npm run build -w @mesaflow/backend
     startCommand: node backend/dist/main.js
     healthCheckPath: /api/health
     envVars:

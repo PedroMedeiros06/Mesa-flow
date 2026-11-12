@@ -32,7 +32,7 @@ Railway, Fly.io ou Cloudflare Pages também servem. Se trocar, use os mesmos com
 | `TRUST_PROXY` | já vem `1` no `render.yaml` (o Render fica na frente da API) |
 
 4. Os comandos já estão no arquivo:
-   - build: `npm ci && npm run build:shared && npm run build -w @mesaflow/backend`;
+   - build: `npm ci --include=dev && npm run build:shared && npm run build -w @mesaflow/backend`;
    - start: `node backend/dist/main.js`.
 5. Confira: `https://SEU-SERVICO.onrender.com/api/health` deve responder `"status":"ok"` e `"database":"ok"`.
 6. Domínio próprio da API: em Settings > Custom Domains, adicione `api.mesaflow.com.br`.
