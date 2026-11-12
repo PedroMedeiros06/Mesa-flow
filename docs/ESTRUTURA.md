@@ -87,8 +87,8 @@ MesaFlow/
 ### Admin da plataforma (`/admin`)
 | Rota | O que faz |
 |---|---|
-| `/admin` | visão geral: restaurantes ativos, inadimplentes, saúde do sistema |
-| `/admin/restaurantes` | cadastro assistido, bloqueio, convite ao dono |
+| `/admin` | abre a lista de restaurantes (a visão geral com inadimplentes vem junto da cobrança) |
+| `/admin/restaurantes` | cadastro assistido (restaurante + dono, código sorteado), bloqueio com motivo, link de senha do dono, uso nos últimos 30 dias |
 | `/admin/restaurantes/:id` | detalhe: plano, faturas, equipe, uso |
 | `/admin/cobranca` | faturas do mês, marcar pagamento, inadimplência |
 
@@ -107,7 +107,7 @@ MesaFlow/
 | `storefront` | rotas públicas da vitrine |
 | `table-qr` | QR fixo de cada mesa, página pública da mesa e chamado do garçom |
 | `dashboard` | números agregados no banco |
-| `admin` | rotas da equipe MesaFlow |
+| `admin` | rotas da equipe MesaFlow: restaurantes (feito). Substitui o script `seed:restaurante` |
 | `billing` | assinaturas e faturas (manual; Asaas depois) |
 | `audit` | registro de quem fez o quê |
 
@@ -133,7 +133,7 @@ Regras transversais:
 | 9.1 | **QR da mesa e chamado do garçom**: um QR fixo por mesa (token aleatório; trocar invalida o adesivo antigo, permissão `company.manage`); o cliente vê só a comanda aberta da mesa, sem dados internos; "chamar o garçom" com espera de 1 minuto no servidor; o chamado vai para todos que veem as mesas, com faixa em qualquer tela do painel, som e vibração (onde o navegador deixa) | cliente acompanha a mesa pelo celular e o chamado chega ao salão |
 | 9.2 | **Equipe e senha**: cadastrar funcionário (nome, CPF, e-mail, permissões), editar permissões, bloquear e desbloquear, e gerar o link de senha que o responsável manda pelo WhatsApp. Ninguém mexe no dono nem no próprio acesso, e só se dá ou tira permissão que a própria pessoa tem. O link sai do Supabase Auth sem enviar e-mail (`generate_link`) | dono cadastra o garçom e o garçom entra sem ajuda técnica |
 | 10 | **Dashboard** (tela Início, permissão `reports.view`): vendido no dia, ticket médio, mesas abertas agora, fila da cozinha, vendas por origem, mais vendidos e últimos 7 dias. **(proposta)** Conta como venda o pedido de balcão ou da vitrine não cancelado (pelo dia do pedido) e a comanda fechada no dia (pelo total congelado, com taxa); rodada de mesa não soma sozinha, para a mesa não contar duas vezes. "Hoje" é no fuso de São Paulo | números batem com o cenário de teste (balcão com desconto, cancelado, vitrine, mesa fechada com item cancelado e mesa aberta) |
-| 11 | **Admin + cobrança manual** | cadastro do restaurante até o primeiro pedido sem ajuda técnica |
+| 11 | **Admin + cobrança manual**. Parte de restaurantes pronta (cadastro, bloqueio, link do dono). Cobrança (assinaturas e faturas) precisa de tabelas novas: migração só com autorização | cadastro do restaurante até o primeiro pedido sem ajuda técnica |
 
 Cada etapa vira um ou mais commits e é mostrada antes de começar a próxima.
 

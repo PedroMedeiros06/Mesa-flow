@@ -1,4 +1,4 @@
-import { createBrowserRouter, Link, type RouteObject } from "react-router";
+import { createBrowserRouter, Link, Navigate, type RouteObject } from "react-router";
 import { Entrar } from "@/features/acesso/Entrar";
 import { EntrarAdmin } from "@/features/acesso/EntrarAdmin";
 import { Ajustes } from "@/features/ajustes/Ajustes";
@@ -15,6 +15,7 @@ import { DefinirSenha } from "@/features/acesso/DefinirSenha";
 import { EsqueciSenha } from "@/features/acesso/EsqueciSenha";
 import { Equipe } from "@/features/equipe/Equipe";
 import { PainelAdmin } from "@/features/admin/PainelAdmin";
+import { Restaurantes } from "@/features/admin/Restaurantes";
 import { MENU_PAINEL } from "@/features/painel/menu";
 import { EmBreve, InicioRestaurante, PainelRestaurante, RequerPermissao } from "@/features/painel/PainelRestaurante";
 import { Site } from "@/features/site/Site";
@@ -74,8 +75,8 @@ export const rotas: RouteObject[] = [
     path: "/admin",
     element: <PainelAdmin />,
     children: [
-      { index: true, element: <EmBreve titulo="Visão geral" etapa={11} /> },
-      { path: "restaurantes", element: <EmBreve titulo="Restaurantes" etapa={11} /> },
+      { index: true, element: <Navigate to="restaurantes" replace /> },
+      { path: "restaurantes", element: <Restaurantes /> },
       { path: "cobranca", element: <EmBreve titulo="Cobrança" etapa={11} /> },
     ],
   },
