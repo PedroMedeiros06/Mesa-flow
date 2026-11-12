@@ -1,0 +1,25 @@
+# Backend no Render (Blueprint). Os segredos (sync: false) são preenchidos no painel do Render, nunca aqui.
+services:
+  - type: web
+    name: mesaflow-api
+    runtime: node
+    plan: starter
+    # Região: escolha a mais perto da região do projeto Supabase (veja em Project Settings > General).
+    buildCommand: npm ci && npm run build:shared && npm run build -w @mesaflow/backend
+    startCommand: node backend/dist/main.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SUPABASE_URL
+        value: https://anujomdyzlkpcakbuwhx.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
