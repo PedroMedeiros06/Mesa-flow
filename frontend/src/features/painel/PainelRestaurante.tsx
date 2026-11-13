@@ -8,6 +8,7 @@ import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Comanda, CorteComanda } from "@/ui/componentes";
 import { ResumoDia } from "../inicio/ResumoDia";
 import { AlertaChamados } from "../mesas/AlertaChamados";
+import { AvisoMensalidade } from "./AvisoMensalidade";
 import { Casca } from "./Casca";
 import { MENU_PAINEL, menuVisivel, podeVer } from "./menu";
 
@@ -40,7 +41,12 @@ export function PainelRestaurante() {
       }
       pessoa={{ nome: member.name, papel: member.role === "owner" ? "Dono" : "Equipe" }}
       aoSair={() => sessao.sair("membro")}
-      alerta={<AlertaChamados />}
+      alerta={
+        <>
+          <AvisoMensalidade />
+          <AlertaChamados />
+        </>
+      }
     />
   );
 }

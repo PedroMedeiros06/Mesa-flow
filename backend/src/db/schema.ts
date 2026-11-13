@@ -578,3 +578,59 @@ export const waiterCalls = app
     ],
   )
   .enableRLS();
+
+// ---------- cobrança manual (equipe MesaFlow) ----------
+
+export const invoiceStatus = app.enum("invoice_status", ["pending", "paid", "canceled"]);
+
+// Plano de cada restaurante. Nome e preço ficam aqui (texto e centavos), porque a tabela de preços
+// ainda vai mudar: trocar o nome de um plano não exige migração.
+export const subscriptions = app
+  .table(
+    "subscriptions",
+    {
+      companyId: uuid("company_id")
+        .primaryKey()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      plan: text("plan").notNull(),
+      priceCents: integer("price_cents").notNull(),
+      // Dia do vencimento: até 28 para existir em todo mês.
+      dueDay: integer("due_day").notNull(),
+      ...timestamps,
+    },
+    (t) => [
+      check("subscriptions_price", sql`${t.priceCents} > 0`),
+      check("subscriptions_due_day", sql`${t.dueDay} between 1 and 28`),
+    ],
+  )
+  .enableRLS();
+
+// Fatura do mês. Nunca é apagada: cancelar e desfazer só mudam o status.
+export const invoices = app
+  .table(
+    "invoices",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => companies.id, { onDelete: "cascade" }),
+      // Primeiro dia do mês de referência.
+      reference: date("reference").notNull(),
+      plan: text("plan").notNull(),
+      amountCents: integer("amount_cents").notNull(),
+      dueDate: date("due_date").notNull(),
+      status: invoiceStatus("status").notNull().default("pending"),
+      paidAt: timestamp("paid_at", { withTimezone: true }),
+      paymentMethod: text("payment_method"),
+      note: text("note").notNull().default(""),
+      changedBy: uuid("changed_by").references(() => platformAdmins.id, { onDelete: "set null" }),
+      ...timestamps,
+    },
+    (t) => [
+      unique("invoices_company_reference").on(t.companyId, t.reference),
+      index("invoices_status_due").on(t.status, t.dueDate),
+      check("invoices_amount", sql`${t.amountCents} > 0`),
+      check("invoices_reference_day", sql`extract(day from ${t.reference}) = 1`),
+    ],
+  )
+  .enableRLS();

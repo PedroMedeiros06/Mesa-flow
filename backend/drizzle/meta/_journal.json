@@ -50,6 +50,13 @@
       "when": 1794611461775,
       "tag": "0006_taxa_servico_padrao",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794611790796,
+      "tag": "0007_cobranca_manual",
+      "breakpoints": true
     }
   ]
 }

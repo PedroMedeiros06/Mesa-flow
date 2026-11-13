@@ -304,3 +304,18 @@
   color: var(--sobre-cor);
   font-weight: 700;
 }
+
+/* Mensalidade em atraso: faixa no topo do painel, só para quem cuida dos dados do restaurante */
+.aviso-mensalidade {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 2px solid var(--ambar);
+  border-radius: var(--raio-md);
+  background: var(--papel);
+}
+.aviso-mensalidade p {
+  margin: 0;
+}

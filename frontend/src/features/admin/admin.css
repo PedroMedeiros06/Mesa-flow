@@ -69,3 +69,63 @@
     justify-content: flex-start;
   }
 }
+
+/* Cobrança */
+.cobranca-mes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  text-transform: none;
+}
+.cobranca-mes .link-btn {
+  font-size: var(--t-xl);
+  padding: 0 6px;
+}
+.cobranca-totais {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  max-width: 1040px;
+  margin-bottom: 20px;
+}
+.cobranca-totais .comanda {
+  display: grid;
+  gap: 4px;
+}
+.cobranca-totais .numeral {
+  font-size: var(--t-2xl);
+}
+.cobranca-recado {
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.cobranca-nota {
+  max-width: 1040px;
+  margin-top: 16px;
+  font-size: var(--t-sm);
+}
+.cobranca-sugestoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cobranca-sugestoes button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 2px solid var(--linha);
+  border-radius: var(--raio-md);
+  background: var(--papel);
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cobranca-sugestoes button[aria-pressed="true"] {
+  border-color: var(--tinta);
+  background: var(--laranja);
+  color: var(--sobre-cor);
+}
+.admin-uso > .etiqueta {
+  justify-self: start;
+}

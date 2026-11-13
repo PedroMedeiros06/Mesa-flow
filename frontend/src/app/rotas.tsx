@@ -14,6 +14,7 @@ import { Pedidos } from "@/features/pedidos/Pedidos";
 import { DefinirSenha } from "@/features/acesso/DefinirSenha";
 import { EsqueciSenha } from "@/features/acesso/EsqueciSenha";
 import { Equipe } from "@/features/equipe/Equipe";
+import { Cobranca } from "@/features/admin/Cobranca";
 import { PainelAdmin } from "@/features/admin/PainelAdmin";
 import { Restaurantes } from "@/features/admin/Restaurantes";
 import { MENU_PAINEL } from "@/features/painel/menu";
@@ -80,7 +81,7 @@ export const rotas: RouteObject[] = [
     children: [
       { index: true, element: <Navigate to="restaurantes" replace /> },
       { path: "restaurantes", element: <Restaurantes /> },
-      { path: "cobranca", element: <EmBreve titulo="Cobrança" etapa={11} /> },
+      { path: "cobranca", element: <Cobranca /> },
     ],
   },
   { path: "*", element: <NaoEncontrado /> },
