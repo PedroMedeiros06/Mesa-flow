@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
-  addressSchema,
   adminCompanyCreatedSchema,
   adminCompanyCreateSchema,
   adminCompanySchema,
@@ -32,7 +31,6 @@ type Aberto =
   | { tipo: "novo" }
   | { tipo: "link"; empresa: AdminCompany; token: string | null }
   | { tipo: "bloquear"; empresa: AdminCompany }
-  | { tipo: "endereco"; empresa: AdminCompany }
   | null;
 
 /** Erros "address.cep" (cadastro) ou "cep" (edição) viram { cep: "..." }. */
@@ -130,7 +128,7 @@ export function Restaurantes() {
               </div>
               <div className="admin-uso">
                 <span>
-                  <strong className="num">{c.ordersLast30Days}</strong> pedidos em 30 dias
+                  <strong className="num">{c.ordersLast30Days}</strong> {c.ordersLast30Days === 1 ? "pedido" : "pedidos"} em 30 dias
                 </span>
                 <span className="suave">
                   {c.membersCount} na equipe · {c.lastOrderAt ? `último pedido ${data(c.lastOrderAt)}` : "nenhum pedido ainda"}
@@ -165,9 +163,6 @@ export function Restaurantes() {
                         Link de senha do dono
                       </Botao>
                     )}
-                    <Botao variante="contorno" pequeno onClick={() => setAberto({ tipo: "endereco", empresa: c })}>
-                      Endereço
-                    </Botao>
                     <Botao variante="perigo" pequeno onClick={() => setAberto({ tipo: "bloquear", empresa: c })}>
                       Bloquear
                     </Botao>
@@ -190,16 +185,6 @@ export function Restaurantes() {
       )}
       {aberto?.tipo === "link" && (
         <LinkDono empresa={aberto.empresa} token={aberto.token} aoGerarDeNovo={() => void gerarLink(aberto.empresa)} aoFechar={() => setAberto(null)} />
-      )}
-      {aberto?.tipo === "endereco" && (
-        <EditarEndereco
-          empresa={aberto.empresa}
-          aoFechar={() => setAberto(null)}
-          aoSalvar={() => {
-            setAberto(null);
-            void carregar();
-          }}
-        />
       )}
       {aberto?.tipo === "bloquear" && (
         <PedirMotivo
@@ -351,53 +336,6 @@ function LinkDono({
           </>
         )}
       </div>
-    </Dialogo>
-  );
-}
-
-function EditarEndereco({ empresa, aoFechar, aoSalvar }: { empresa: AdminCompany; aoFechar: () => void; aoSalvar: () => void }) {
-  const a = empresa.address;
-  const [endereco, setEndereco] = useState<Endereco>(
-    a ? { ...a, cep: a.cep.replace(/^(\d{5})(\d{3})$/, "$1-$2") } : enderecoVazio,
-  );
-  const [erros, setErros] = useState<Partial<Record<keyof Endereco, string>>>({});
-  const [erro, setErro] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
-
-  async function salvar(e: FormEvent) {
-    e.preventDefault();
-    setErro(null);
-    const valido = addressSchema.safeParse(endereco);
-    if (!valido.success) {
-      setErros(errosEndereco(valido.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })), ""));
-      return;
-    }
-    setErros({});
-    setEnviando(true);
-    try {
-      await pedir(`/admin/companies/${empresa.id}/address`, corpo("PUT", endereco));
-      aoSalvar();
-    } catch (falha) {
-      if (falha instanceof ApiErro && falha.issues.length) setErros(errosEndereco(falha.issues, ""));
-      setErro(mensagem(falha, "Não foi possível salvar o endereço."));
-      setEnviando(false);
-    }
-  }
-
-  return (
-    <Dialogo aberto largo aoFechar={aoFechar} titulo={`Endereço: ${empresa.name}`}>
-      <form onSubmit={salvar} noValidate className="admin-form">
-        {erro && <Aviso>{erro}</Aviso>}
-        <CamposEndereco valor={endereco} aoMudar={setEndereco} erros={erros} />
-        <div className="dialogo-acoes">
-          <Botao variante="claro" onClick={aoFechar}>
-            Voltar
-          </Botao>
-          <Botao type="submit" carregando={enviando} textoCarregando="Salvando...">
-            Salvar endereço
-          </Botao>
-        </div>
-      </form>
     </Dialogo>
   );
 }
