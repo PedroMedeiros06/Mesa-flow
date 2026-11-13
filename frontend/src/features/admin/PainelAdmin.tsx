@@ -6,6 +6,7 @@ import { useSessao } from "@/lib/useSessao";
 import { Casca, type ItemCasca } from "@/features/painel/Casca";
 
 const MENU_ADMIN: ItemCasca[] = [
+  { id: "inicio", nome: "Visão geral", icone: "inicio", caminho: "/admin" },
   { id: "restaurantes", nome: "Restaurantes", icone: "loja", caminho: "/admin/restaurantes" },
   { id: "cobranca", nome: "Cobrança", icone: "cobranca", caminho: "/admin/cobranca" },
 ];
@@ -28,7 +29,7 @@ export function PainelAdmin() {
 
   return (
     <Casca
-      inicio="/admin/restaurantes"
+      inicio="/admin"
       itens={MENU_ADMIN}
       topo={
         <div className="trilho-rest">

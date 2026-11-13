@@ -1,4 +1,4 @@
-import { createBrowserRouter, Link, Navigate, type RouteObject } from "react-router";
+import { createBrowserRouter, Link, type RouteObject } from "react-router";
 import { Entrar } from "@/features/acesso/Entrar";
 import { EntrarAdmin } from "@/features/acesso/EntrarAdmin";
 import { Ajustes } from "@/features/ajustes/Ajustes";
@@ -17,6 +17,7 @@ import { Equipe } from "@/features/equipe/Equipe";
 import { Cobranca } from "@/features/admin/Cobranca";
 import { PainelAdmin } from "@/features/admin/PainelAdmin";
 import { Restaurantes } from "@/features/admin/Restaurantes";
+import { VisaoGeral } from "@/features/admin/VisaoGeral";
 import { MENU_PAINEL } from "@/features/painel/menu";
 import { EmBreve, InicioRestaurante, PainelRestaurante, RequerPermissao } from "@/features/painel/PainelRestaurante";
 import { Privacidade, Termos } from "@/features/site/Legal";
@@ -79,7 +80,7 @@ export const rotas: RouteObject[] = [
     path: "/admin",
     element: <PainelAdmin />,
     children: [
-      { index: true, element: <Navigate to="restaurantes" replace /> },
+      { index: true, element: <VisaoGeral /> },
       { path: "restaurantes", element: <Restaurantes /> },
       { path: "cobranca", element: <Cobranca /> },
     ],

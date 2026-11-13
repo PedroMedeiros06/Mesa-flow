@@ -85,3 +85,18 @@ export const adminCompanyStatusSchema = z.discriminatedUnion("status", [
   }),
 ]);
 export type AdminCompanyStatusInput = z.input<typeof adminCompanyStatusSchema>;
+
+/** Visão geral do admin: restaurantes, faturamento esperado e onde estão no mapa. */
+export const adminOverviewSchema = z.object({
+  activeCount: z.number().int(),
+  blockedCount: z.number().int(),
+  /** Soma dos planos dos restaurantes ativos: o bruto esperado por mês. */
+  expectedMonthlyCents: z.number().int(),
+  /** Restaurantes ativos sem plano definido (não entram no esperado). */
+  activeWithoutPlan: z.number().int(),
+  /** Só restaurantes ativos com endereço. */
+  byState: z.array(z.object({ state: z.string(), companies: z.number().int() })),
+  byCity: z.array(z.object({ state: z.string(), city: z.string(), companies: z.number().int() })),
+  activeWithoutAddress: z.number().int(),
+});
+export type AdminOverview = z.infer<typeof adminOverviewSchema>;

@@ -13,6 +13,11 @@ const id = new ParseUUIDPipe({ errorHttpStatusCode: 404 });
 export class AdminCompaniesController {
   constructor(private readonly companies: AdminCompaniesService) {}
 
+  @Get("overview")
+  overview() {
+    return this.companies.overview();
+  }
+
   @Get()
   list() {
     return this.companies.list();

@@ -10,6 +10,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type {
   Address,
   AdminCompany,
+  AdminOverview,
   AdminCompanyCreated,
   adminCompanyCreateSchema,
   adminCompanyStatusSchema,
@@ -18,7 +19,7 @@ import type {
 import type { z } from "zod";
 import { AuthAdmin } from "../../auth/supabase-admin.client.js";
 import { DB, type Database } from "../../db/database.module.js";
-import { companies, members, orders } from "../../db/schema.js";
+import { companies, members, orders, subscriptions } from "../../db/schema.js";
 
 type CreateData = z.output<typeof adminCompanyCreateSchema>;
 type StatusData = z.output<typeof adminCompanyStatusSchema>;
@@ -55,6 +56,43 @@ export class AdminCompaniesService {
   private get conn(): Database {
     if (!this.db) throw new ServiceUnavailableException({ statusCode: 503, message: "Banco não configurado." });
     return this.db;
+  }
+
+  /** Números da visão geral. O mapa conta só restaurantes ativos e agrupa por UF e cidade do endereço. */
+  async overview(): Promise<AdminOverview> {
+    const linhas = await this.conn
+      .select({
+        status: companies.status,
+        state: companies.addressState,
+        city: companies.addressCity,
+        priceCents: subscriptions.priceCents,
+      })
+      .from(companies)
+      .leftJoin(subscriptions, eq(subscriptions.companyId, companies.id));
+    const ativos = linhas.filter((l) => l.status === "active");
+    const comEndereco = ativos.filter((l) => l.state && l.city);
+
+    const porEstado = new Map<string, number>();
+    const porCidade = new Map<string, { state: string; city: string; companies: number }>();
+    for (const l of comEndereco) {
+      porEstado.set(l.state!, (porEstado.get(l.state!) ?? 0) + 1);
+      // Mesma cidade digitada com caixa ou espaço diferente conta junto.
+      const chave = `${l.state}|${l.city!.trim().toLocaleLowerCase("pt-BR")}`;
+      const atual = porCidade.get(chave);
+      if (atual) atual.companies++;
+      else porCidade.set(chave, { state: l.state!, city: l.city!.trim(), companies: 1 });
+    }
+    const ordenar = <T extends { companies: number }>(a: T, b: T) => b.companies - a.companies;
+
+    return {
+      activeCount: ativos.length,
+      blockedCount: linhas.length - ativos.length,
+      expectedMonthlyCents: ativos.reduce((s, l) => s + (l.priceCents ?? 0), 0),
+      activeWithoutPlan: ativos.filter((l) => l.priceCents === null).length,
+      byState: [...porEstado].map(([state, n]) => ({ state, companies: n })).sort((a, b) => ordenar(a, b) || a.state.localeCompare(b.state)),
+      byCity: [...porCidade.values()].sort((a, b) => ordenar(a, b) || a.city.localeCompare(b.city, "pt-BR")),
+      activeWithoutAddress: ativos.length - comEndereco.length,
+    };
   }
 
   async list(): Promise<AdminCompany[]> {

@@ -1,0 +1,225 @@
+/* Visão geral do admin e mapa do Brasil */
+.visao-numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  max-width: 1040px;
+  margin-bottom: 16px;
+}
+.visao-numeros .comanda {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.visao-numeros .numeral {
+  font-size: var(--t-4xl);
+  line-height: 1.05;
+}
+.visao-link {
+  color: var(--laranja-texto);
+  font-weight: 700;
+}
+.visao-mapa {
+  max-width: 1040px;
+  display: grid;
+  gap: 12px;
+}
+.visao-mapa h2 {
+  font-size: var(--t-lg);
+}
+
+/*
+ * Escala de um tom só (laranja), do claro ao escuro, para a quantidade de restaurantes.
+ * Cada tema tem seus degraus; o texto da sigla troca de cor para manter contraste.
+ */
+.mapa-tela {
+  --m0: #efe2c9;
+  --m1: #f7c48e;
+  --m2: #f0994a;
+  --m3: #dd6a14;
+  --m4: #a9440a;
+  --t-escuro: #1b130c;
+  --t-claro: #fffbf3;
+  position: relative;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mapa-tela {
+    --m0: #2b231b;
+    --m1: #a24a10;
+    --m2: #cc5d10;
+    --m3: #f07a26;
+    --m4: #ffb070;
+  }
+}
+:root[data-theme="dark"] .mapa-tela {
+  --m0: #2b231b;
+  --m1: #a24a10;
+  --m2: #cc5d10;
+  --m3: #f07a26;
+  --m4: #ffb070;
+}
+.mapa-tela svg {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  margin: 0 auto;
+}
+.mapa-tela path {
+  stroke: var(--papel);
+  stroke-linejoin: round;
+  transition: opacity 0.2s;
+}
+.mapa-tela path:hover {
+  opacity: 0.8;
+}
+.mapa-tela path[data-clicavel] {
+  cursor: pointer;
+}
+.mapa-tela [data-degrau="0"] {
+  fill: var(--m0);
+}
+.mapa-tela path[data-degrau="1"] {
+  fill: var(--m1);
+}
+.mapa-tela path[data-degrau="2"] {
+  fill: var(--m2);
+}
+.mapa-tela path[data-degrau="3"] {
+  fill: var(--m3);
+}
+.mapa-tela path[data-degrau="4"] {
+  fill: var(--m4);
+}
+.mapa-tela text {
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--t-escuro);
+}
+/* Tema claro: o degrau mais escuro leva sigla clara. Tema escuro: só o primeiro degrau é escuro. */
+.mapa-tela text[data-degrau="4"] {
+  fill: var(--t-claro);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mapa-tela text[data-degrau="1"] {
+    fill: var(--t-claro);
+  }
+  :root:not([data-theme="light"]) .mapa-tela text[data-degrau="4"] {
+    fill: var(--t-escuro);
+  }
+}
+:root[data-theme="dark"] .mapa-tela text[data-degrau="1"] {
+  fill: var(--t-claro);
+}
+:root[data-theme="dark"] .mapa-tela text[data-degrau="4"] {
+  fill: var(--t-escuro);
+}
+
+.mapa-dica {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 10px));
+  pointer-events: none;
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 2px solid var(--tinta);
+  border-radius: var(--raio-md);
+  background: var(--papel);
+  color: var(--tinta);
+  font-size: var(--t-sm);
+  white-space: nowrap;
+  box-shadow: var(--sombra);
+}
+
+.mapa-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  gap: 24px;
+  align-items: start;
+}
+.mapa-lado {
+  display: grid;
+  gap: 12px;
+  font-size: var(--t-sm);
+}
+.mapa-ranking,
+.mapa-cidades {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.mapa-ranking button {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--raio-md);
+  cursor: pointer;
+}
+.mapa-ranking button:hover,
+.mapa-ranking button:focus-visible {
+  background: var(--papel-2, var(--linha));
+}
+.mapa-ranking button:focus-visible {
+  outline: 2px solid var(--laranja);
+}
+.mapa-ranking-linha,
+.mapa-cidades li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.mapa-cidades li {
+  padding: 8px 0;
+  border-bottom: 2px dashed var(--linha);
+}
+.mapa-barra {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--linha);
+  overflow: hidden;
+}
+.mapa-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--laranja);
+}
+.mapa-nota {
+  padding-top: 10px;
+  border-top: 2px dashed var(--linha);
+}
+.mapa-estado {
+  display: grid;
+  gap: 12px;
+}
+.mapa-voltar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mapa-mensagem {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px dashed var(--linha);
+  border-radius: var(--raio-md);
+  color: var(--tinta-2);
+}
+
+@media (max-width: 760px) {
+  .mapa-grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -168,6 +168,44 @@ describe("Admin: restaurantes", () => {
     await como(donoExistente).put(`/api/admin/companies/${c!.id}/address`).send({}).expect(403);
   });
 
+  it("visão geral: ativos, bruto esperado pelos planos e mapa por estado e cidade", async () => {
+    const criar = async (email: string, city: string, state: string, cpf: string) =>
+      (
+        await como(admin)
+          .post("/api/admin/companies")
+          .send(novo({ ownerEmail: email, ownerCpf: cpf, address: { cep: "01310100", street: "Rua A", number: "1", district: "Centro", city, state } }))
+          .expect(201)
+      ).body.company as AdminCompany;
+    const a = await criar("a@x.com", "São Paulo", "SP", "52998224725");
+    const b = await criar("b@x.com", "são paulo ", "SP", "11144477735");
+    const c = await criar("c@x.com", "Curitiba", "PR", "39053344705");
+    const d = await criar("d@x.com", "Porto Alegre", "RS", "71428793860");
+    await como(admin).put(`/api/admin/companies/${a.id}/subscription`).send({ plan: "Completo", priceCents: 9990, dueDay: 10 }).expect(200);
+    await como(admin).put(`/api/admin/companies/${b.id}/subscription`).send({ plan: "Essencial", priceCents: 4990, dueDay: 10 }).expect(200);
+    await como(admin).put(`/api/admin/companies/${d.id}/subscription`).send({ plan: "Completo", priceCents: 9990, dueDay: 10 }).expect(200);
+    // Bloqueado sai do mapa e do esperado.
+    await como(admin).put(`/api/admin/companies/${d.id}/status`).send({ status: "blocked", reason: "Teste" }).expect(200);
+    void c;
+
+    const r = (await como(admin).get("/api/admin/companies/overview").expect(200)).body;
+    expect(r).toEqual({
+      activeCount: 4, // 3 novos + o restaurante antigo, sem endereço
+      blockedCount: 1,
+      expectedMonthlyCents: 9990 + 4990,
+      activeWithoutPlan: 2,
+      byState: [
+        { state: "SP", companies: 2 },
+        { state: "PR", companies: 1 },
+      ],
+      byCity: [
+        { state: "SP", city: "São Paulo", companies: 2 },
+        { state: "PR", city: "Curitiba", companies: 1 },
+      ],
+      activeWithoutAddress: 1,
+    });
+    await como(donoExistente).get("/api/admin/companies/overview").expect(403);
+  });
+
   it("só a equipe MesaFlow entra; id desconhecido dá 404", async () => {
     await como(donoExistente).get("/api/admin/companies").expect(403);
     await como(donoExistente).post("/api/admin/companies").send(novo()).expect(403);
