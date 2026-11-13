@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from "@nestjs/common";
-import { adminCompanyCreateSchema, adminCompanyStatusSchema } from "@mesaflow/shared";
+import { addressSchema, adminCompanyCreateSchema, adminCompanyStatusSchema } from "@mesaflow/shared";
 import type { z } from "zod";
 import { AdminGuard } from "../../auth/guards.js";
 import { ZodValidationPipe } from "../../common/zod-validation.pipe.js";
@@ -29,6 +29,11 @@ export class AdminCompaniesController {
     @Body(new ZodValidationPipe(adminCompanyStatusSchema)) body: z.output<typeof adminCompanyStatusSchema>,
   ) {
     return this.companies.setStatus(companyId, body);
+  }
+
+  @Put(":id/address")
+  setAddress(@Param("id", id) companyId: string, @Body(new ZodValidationPipe(addressSchema)) body: z.output<typeof addressSchema>) {
+    return this.companies.setAddress(companyId, body);
   }
 
   @Post(":id/owner-link")

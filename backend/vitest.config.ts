@@ -8,6 +8,9 @@ export default defineConfig({
   test: {
     // Cada arquivo sobe um Postgres em memória e roda as migrações; com vários em paralelo, passa dos 10 s padrão.
     hookTimeout: 60_000,
+    // O primeiro teste de cada arquivo paga o aquecimento do Postgres em memória; com a máquina
+    // ocupada (npm run check), passava dos 5 s padrão e falhava sem erro de lógica.
+    testTimeout: 30_000,
     env: {
       SUPABASE_URL: "https://teste.supabase.co",
       SUPABASE_PUBLISHABLE_KEY: "sb_publishable_teste",

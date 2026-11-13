@@ -55,6 +55,7 @@ describe("Admin: restaurantes", () => {
     ownerName: "José Silva",
     ownerCpf: "529.982.247-25",
     ownerEmail: "ZE@pizzaria.com",
+    address: { cep: "01310-100", street: "Avenida Paulista", number: "1000", complement: "Loja 2", district: "Bela Vista", city: "São Paulo", state: "sp" },
     ...extra,
   });
 
@@ -101,6 +102,7 @@ describe("Admin: restaurantes", () => {
       name: "Pizzaria do Zé",
       status: "active",
       owner: { name: "José Silva", email: "ze@pizzaria.com" },
+      address: { cep: "01310100", street: "Avenida Paulista", number: "1000", complement: "Loja 2", district: "Bela Vista", city: "São Paulo", state: "SP" },
       membersCount: 1,
       ordersLast30Days: 0,
       lastOrderAt: null,
@@ -125,6 +127,12 @@ describe("Admin: restaurantes", () => {
     await como(admin).post("/api/admin/companies").send(novo()).expect(201);
     await como(admin).post("/api/admin/companies").send(novo({ name: "Outra" })).expect(409);
     await como(admin).post("/api/admin/companies").send(novo({ ownerCpf: "1", ownerEmail: "x" })).expect(400);
+    const semEndereco = await como(admin).post("/api/admin/companies").send(novo({ ownerEmail: "sem@x.com", address: undefined })).expect(400);
+    expect(semEndereco.body.issues.some((i: { path: string }) => i.path.startsWith("address"))).toBe(true);
+    await como(admin)
+      .post("/api/admin/companies")
+      .send(novo({ ownerEmail: "uf@x.com", address: { cep: "123", street: "R", number: "", district: "B", city: "C", state: "XX" } }))
+      .expect(400);
 
     falharBanco = true;
     await como(admin).post("/api/admin/companies").send(novo({ ownerEmail: "falha@x.com" })).expect(500);
@@ -145,6 +153,19 @@ describe("Admin: restaurantes", () => {
     await como(admin).put(`/api/admin/companies/${c!.id}/status`).send({ status: "active" }).expect(200);
     await como(donoExistente).get("/api/auth/me").expect(200);
     await http().get(`/api/storefront/${codigoExistente}`).expect(200);
+  });
+
+  it("completa o endereço de um restaurante antigo", async () => {
+    const [c] = ((await como(admin).get("/api/admin/companies")).body as AdminCompany[]).filter((x) => x.code === codigoExistente);
+    expect(c!.address).toBeNull();
+    const r = await como(admin)
+      .put(`/api/admin/companies/${c!.id}/address`)
+      .send({ cep: "90010-000", street: "Rua dos Andradas", number: "S/N", district: "Centro Histórico", city: "Porto Alegre", state: "RS" })
+      .expect(200);
+    expect(r.body.address).toEqual({ cep: "90010000", street: "Rua dos Andradas", number: "S/N", complement: "", district: "Centro Histórico", city: "Porto Alegre", state: "RS" });
+    await como(admin).put(`/api/admin/companies/${c!.id}/address`).send({ cep: "9" }).expect(400);
+    await como(admin).put(`/api/admin/companies/${randomUUID()}/address`).send({ cep: "90010-000", street: "Rua A", number: "1", district: "Centro", city: "Porto Alegre", state: "RS" }).expect(404);
+    await como(donoExistente).put(`/api/admin/companies/${c!.id}/address`).send({}).expect(403);
   });
 
   it("só a equipe MesaFlow entra; id desconhecido dá 404", async () => {

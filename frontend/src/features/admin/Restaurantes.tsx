@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
+  addressSchema,
   adminCompanyCreatedSchema,
   adminCompanyCreateSchema,
   adminCompanySchema,
@@ -13,6 +14,7 @@ import { Aviso, Botao, Campo, classeBotao, Dialogo, Etiqueta } from "@/ui/compon
 import { errosPorCampo, type ErrosCampos } from "../acesso/erros";
 import { PedirMotivo } from "../mesas/PedirMotivo";
 import { linkDeSenha } from "../equipe/api";
+import { CamposEndereco, enderecoEmLinha, enderecoVazio, type Endereco } from "./CamposEndereco";
 import "./admin.css";
 
 const pedir = async (caminho: string, init?: RequestInit): Promise<unknown> =>
@@ -30,7 +32,19 @@ type Aberto =
   | { tipo: "novo" }
   | { tipo: "link"; empresa: AdminCompany; token: string | null }
   | { tipo: "bloquear"; empresa: AdminCompany }
+  | { tipo: "endereco"; empresa: AdminCompany }
   | null;
+
+/** Erros "address.cep" (cadastro) ou "cep" (edição) viram { cep: "..." }. */
+function errosEndereco(issues: { path: string; message: string }[], prefixo: string): Partial<Record<keyof Endereco, string>> {
+  const r: Partial<Record<keyof Endereco, string>> = {};
+  for (const i of issues) {
+    if (!i.path.startsWith(prefixo)) continue;
+    const campo = i.path.slice(prefixo.length) as keyof Endereco;
+    r[campo] ??= i.message;
+  }
+  return r;
+}
 
 /** /admin/restaurantes: cadastro assistido, bloqueio e link de senha do dono. */
 export function Restaurantes() {
@@ -111,6 +125,7 @@ export function Restaurantes() {
                   Código {c.code} · desde {data(c.createdAt)}
                 </span>
                 <span className="suave">{c.owner ? `${c.owner.name} · ${c.owner.email}` : "Sem dono cadastrado"}</span>
+                <span className="suave">{c.address ? enderecoEmLinha(c.address) : "Sem endereço cadastrado"}</span>
                 {c.status === "blocked" && c.blockedReason && <span className="admin-motivo">Motivo: {c.blockedReason}</span>}
               </div>
               <div className="admin-uso">
@@ -150,6 +165,9 @@ export function Restaurantes() {
                         Link de senha do dono
                       </Botao>
                     )}
+                    <Botao variante="contorno" pequeno onClick={() => setAberto({ tipo: "endereco", empresa: c })}>
+                      Endereço
+                    </Botao>
                     <Botao variante="perigo" pequeno onClick={() => setAberto({ tipo: "bloquear", empresa: c })}>
                       Bloquear
                     </Botao>
@@ -172,6 +190,16 @@ export function Restaurantes() {
       )}
       {aberto?.tipo === "link" && (
         <LinkDono empresa={aberto.empresa} token={aberto.token} aoGerarDeNovo={() => void gerarLink(aberto.empresa)} aoFechar={() => setAberto(null)} />
+      )}
+      {aberto?.tipo === "endereco" && (
+        <EditarEndereco
+          empresa={aberto.empresa}
+          aoFechar={() => setAberto(null)}
+          aoSalvar={() => {
+            setAberto(null);
+            void carregar();
+          }}
+        />
       )}
       {aberto?.tipo === "bloquear" && (
         <PedirMotivo
@@ -199,6 +227,8 @@ function NovoRestaurante({ aoFechar, aoCriar }: { aoFechar: () => void; aoCriar:
   const [dono, setDono] = useState("");
   const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
+  const [endereco, setEndereco] = useState<Endereco>(enderecoVazio);
+  const [errosEnd, setErrosEnd] = useState<Partial<Record<keyof Endereco, string>>>({});
   const [erros, setErros] = useState<ErrosCampos<CampoNovo>>({});
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -206,26 +236,32 @@ function NovoRestaurante({ aoFechar, aoCriar }: { aoFechar: () => void; aoCriar:
   async function criar(e: FormEvent) {
     e.preventDefault();
     setErro(null);
-    const dados = { name: nome, ownerName: dono, ownerCpf: cpf, ownerEmail: email };
+    const dados = { name: nome, ownerName: dono, ownerCpf: cpf, ownerEmail: email, address: endereco };
     const valido = adminCompanyCreateSchema.safeParse(dados);
     if (!valido.success) {
-      setErros(errosPorCampo<CampoNovo>(valido.error.issues.map((i) => ({ path: i.path.join("."), message: i.message }))));
+      const issues = valido.error.issues.map((i) => ({ path: i.path.join("."), message: i.message }));
+      setErros(errosPorCampo<CampoNovo>(issues));
+      setErrosEnd(errosEndereco(issues, "address."));
       return;
     }
     setErros({});
+    setErrosEnd({});
     setEnviando(true);
     try {
       const r = adminCompanyCreatedSchema.parse(await pedir("/admin/companies", corpo("POST", dados)));
       aoCriar(r.company, r.token);
     } catch (falha) {
-      if (falha instanceof ApiErro && falha.issues.length) setErros(errosPorCampo<CampoNovo>(falha.issues));
+      if (falha instanceof ApiErro && falha.issues.length) {
+        setErros(errosPorCampo<CampoNovo>(falha.issues));
+        setErrosEnd(errosEndereco(falha.issues, "address."));
+      }
       setErro(mensagem(falha, "Não foi possível cadastrar. Tente de novo."));
       setEnviando(false);
     }
   }
 
   return (
-    <Dialogo aberto aoFechar={aoFechar} titulo="Cadastrar restaurante">
+    <Dialogo aberto largo aoFechar={aoFechar} titulo="Cadastrar restaurante">
       <form onSubmit={criar} noValidate className="admin-form">
         {erro && <Aviso>{erro}</Aviso>}
         <Campo rotulo="Nome do restaurante" value={nome} onChange={(e) => setNome(e.target.value)} erro={erros.name} maxLength={80} autoFocus />
@@ -239,6 +275,7 @@ function NovoRestaurante({ aoFechar, aoCriar }: { aoFechar: () => void; aoCriar:
           erro={erros.ownerCpf}
         />
         <Campo rotulo="E-mail do dono" type="email" value={email} onChange={(e) => setEmail(e.target.value)} erro={erros.ownerEmail} />
+        <CamposEndereco valor={endereco} aoMudar={setEndereco} erros={errosEnd} />
         <p className="suave">O código de acesso é sorteado. Depois de cadastrar, você manda o link para o dono criar a senha.</p>
         <div className="dialogo-acoes">
           <Botao variante="claro" onClick={aoFechar}>
@@ -314,6 +351,53 @@ function LinkDono({
           </>
         )}
       </div>
+    </Dialogo>
+  );
+}
+
+function EditarEndereco({ empresa, aoFechar, aoSalvar }: { empresa: AdminCompany; aoFechar: () => void; aoSalvar: () => void }) {
+  const a = empresa.address;
+  const [endereco, setEndereco] = useState<Endereco>(
+    a ? { ...a, cep: a.cep.replace(/^(\d{5})(\d{3})$/, "$1-$2") } : enderecoVazio,
+  );
+  const [erros, setErros] = useState<Partial<Record<keyof Endereco, string>>>({});
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  async function salvar(e: FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    const valido = addressSchema.safeParse(endereco);
+    if (!valido.success) {
+      setErros(errosEndereco(valido.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })), ""));
+      return;
+    }
+    setErros({});
+    setEnviando(true);
+    try {
+      await pedir(`/admin/companies/${empresa.id}/address`, corpo("PUT", endereco));
+      aoSalvar();
+    } catch (falha) {
+      if (falha instanceof ApiErro && falha.issues.length) setErros(errosEndereco(falha.issues, ""));
+      setErro(mensagem(falha, "Não foi possível salvar o endereço."));
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Dialogo aberto largo aoFechar={aoFechar} titulo={`Endereço: ${empresa.name}`}>
+      <form onSubmit={salvar} noValidate className="admin-form">
+        {erro && <Aviso>{erro}</Aviso>}
+        <CamposEndereco valor={endereco} aoMudar={setEndereco} erros={erros} />
+        <div className="dialogo-acoes">
+          <Botao variante="claro" onClick={aoFechar}>
+            Voltar
+          </Botao>
+          <Botao type="submit" carregando={enviando} textoCarregando="Salvando...">
+            Salvar endereço
+          </Botao>
+        </div>
+      </form>
     </Dialogo>
   );
 }

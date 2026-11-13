@@ -3,6 +3,34 @@ import { cpfSchema } from "./auth.js";
 
 export const COMPANY_STATUSES = ["active", "blocked"] as const;
 
+export const UFS = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA",
+  "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+] as const;
+
+const texto = (min: number, max: number, vazio: string) =>
+  z.string().trim().min(min, vazio).max(max, `Use no máximo ${max} caracteres`);
+
+/** Endereço do restaurante. Complemento é o único opcional; sem número, use "S/N". */
+export const addressSchema = z.object({
+  cep: z
+    .string()
+    .transform((v) => v.replace(/\D/g, ""))
+    .pipe(z.string().regex(/^\d{8}$/, "O CEP tem 8 números")),
+  street: texto(2, 120, "Informe a rua"),
+  number: texto(1, 20, "Informe o número (ou S/N)"),
+  complement: z.string().trim().max(80, "Use no máximo 80 caracteres").default(""),
+  district: texto(2, 80, "Informe o bairro"),
+  city: texto(2, 80, "Informe a cidade"),
+  state: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .pipe(z.enum(UFS, { error: "Escolha o estado" })),
+});
+export type Address = z.output<typeof addressSchema>;
+export type AddressInput = z.input<typeof addressSchema>;
+
 /** Linha da lista de restaurantes no admin. */
 export const adminCompanySchema = z.object({
   id: z.uuid(),
@@ -12,6 +40,18 @@ export const adminCompanySchema = z.object({
   blockedReason: z.string().nullable(),
   createdAt: z.string(),
   owner: z.object({ id: z.uuid(), name: z.string(), email: z.string() }).nullable(),
+  /** null nos restaurantes cadastrados antes do endereço existir. */
+  address: z
+    .object({
+      cep: z.string(),
+      street: z.string(),
+      number: z.string(),
+      complement: z.string(),
+      district: z.string(),
+      city: z.string(),
+      state: z.string(),
+    })
+    .nullable(),
   membersCount: z.number().int(),
   /** Pedidos (balcão, vitrine e rodadas de mesa) nos últimos 30 dias: mostra quem está usando. */
   ordersLast30Days: z.number().int(),
@@ -29,6 +69,7 @@ export const adminCompanyCreateSchema = z.object({
     .trim()
     .toLowerCase()
     .pipe(z.email("E-mail inválido").max(254)),
+  address: addressSchema,
 });
 export type AdminCompanyCreateInput = z.input<typeof adminCompanyCreateSchema>;
 

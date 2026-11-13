@@ -5,6 +5,7 @@ import {
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
+  type Ref,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
@@ -71,6 +72,8 @@ export function Botao({
 /* ---------- campo ---------- */
 
 interface CampoProps extends InputHTMLAttributes<HTMLInputElement> {
+  /** React 19: ref é uma prop comum e chega ao <input> pelo resto. */
+  ref?: Ref<HTMLInputElement>;
   rotulo: string;
   ajuda?: ReactNode;
   erro?: string;

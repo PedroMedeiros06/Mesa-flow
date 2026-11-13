@@ -89,7 +89,7 @@ MesaFlow/
 | Rota | O que faz |
 |---|---|
 | `/admin` | abre a lista de restaurantes (a visão geral com inadimplentes vem junto da cobrança) |
-| `/admin/restaurantes` | cadastro assistido (restaurante + dono, código sorteado), bloqueio com motivo, link de senha do dono, uso nos últimos 30 dias |
+| `/admin/restaurantes` | cadastro assistido (restaurante + dono + endereço completo com busca do CEP no ViaCEP, código sorteado), editar endereço, bloqueio com motivo, link de senha do dono, uso nos últimos 30 dias |
 | `/admin/restaurantes/:id` | detalhe: plano, faturas, equipe, uso |
 | `/admin/cobranca` | plano de cada restaurante, gerar faturas do mês, marcar paga, cancelar, desfazer, atrasados |
 

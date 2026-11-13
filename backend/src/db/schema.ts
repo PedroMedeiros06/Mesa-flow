@@ -85,6 +85,14 @@ export const companies = app
       whatsapp: text("whatsapp"),
       // Taxa de serviço com que toda mesa abre (pontos-base: 1000 = 10%). Cada mesa ainda pode mudar a sua.
       serviceFeeBps: integer("service_fee_bps").notNull().default(1000),
+      // Endereço do restaurante (cadastro pelo admin). Vazio nos restaurantes cadastrados antes de existir.
+      addressCep: text("address_cep"),
+      addressStreet: text("address_street"),
+      addressNumber: text("address_number"),
+      addressComplement: text("address_complement"),
+      addressDistrict: text("address_district"),
+      addressCity: text("address_city"),
+      addressState: text("address_state"),
       status: companyStatus("status").notNull().default("active"),
       blockedReason: text("blocked_reason"),
       ...timestamps,
@@ -92,6 +100,8 @@ export const companies = app
     (t) => [
       check("companies_code_format", sql`${t.code} ~ '^[0-9]{6}$'`),
       check("companies_fee_range", sql`${t.serviceFeeBps} between 0 and 2000`),
+      check("companies_cep_format", sql`${t.addressCep} is null or ${t.addressCep} ~ '^[0-9]{8}$'`),
+      check("companies_state_format", sql`${t.addressState} is null or ${t.addressState} ~ '^[A-Z]{2}$'`),
     ],
   )
   .enableRLS();

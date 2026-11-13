@@ -57,6 +57,13 @@
       "when": 1794611790796,
       "tag": "0007_cobranca_manual",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794612974336,
+      "tag": "0008_endereco_restaurante",
+      "breakpoints": true
     }
   ]
 }

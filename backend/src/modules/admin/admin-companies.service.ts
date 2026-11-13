@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type {
+  Address,
   AdminCompany,
   AdminCompanyCreated,
   adminCompanyCreateSchema,
@@ -26,6 +27,17 @@ function restricao(erro: unknown): string | undefined {
   const e = erro as { constraint_name?: string; constraint?: string; cause?: { constraint_name?: string; constraint?: string } };
   return e.constraint_name ?? e.constraint ?? e.cause?.constraint_name ?? e.cause?.constraint;
 }
+
+/** Endereço da API para as colunas de companies. */
+const colunasEndereco = (e: Address) => ({
+  addressCep: e.cep,
+  addressStreet: e.street,
+  addressNumber: e.number,
+  addressComplement: e.complement,
+  addressDistrict: e.district,
+  addressCity: e.city,
+  addressState: e.state,
+});
 
 const naoEncontrado = () => new NotFoundException({ statusCode: 404, message: "Restaurante não encontrado." });
 
@@ -66,6 +78,13 @@ export class AdminCompaniesService {
         ownerId: dono.id,
         ownerName: dono.name,
         ownerEmail: dono.email,
+        cep: companies.addressCep,
+        street: companies.addressStreet,
+        number: companies.addressNumber,
+        complement: companies.addressComplement,
+        district: companies.addressDistrict,
+        city: companies.addressCity,
+        state: companies.addressState,
         membersCount: sql<number>`(select count(*)::int from ${members} m where m.company_id = ${companies.id})`,
         ordersLast30Days: sql<number>`(select count(*)::int from ${orders} o where o.company_id = ${companies.id} and o.created_at > now() - interval '30 days')`,
         lastOrderAt: sql<string | null>`(select max(o.created_at) from ${orders} o where o.company_id = ${companies.id})`,
@@ -87,6 +106,17 @@ export class AdminCompaniesService {
         blockedReason: l.blockedReason,
         createdAt: l.createdAt.toISOString(),
         owner: l.ownerId ? { id: l.ownerId, name: l.ownerName!, email: l.ownerEmail! } : null,
+        address: l.cep
+          ? {
+              cep: l.cep,
+              street: l.street ?? "",
+              number: l.number ?? "",
+              complement: l.complement ?? "",
+              district: l.district ?? "",
+              city: l.city ?? "",
+              state: l.state ?? "",
+            }
+          : null,
         membersCount: l.membersCount,
         ordersLast30Days: l.ordersLast30Days,
         lastOrderAt: l.lastOrderAt ? new Date(l.lastOrderAt).toISOString() : null,
@@ -109,7 +139,7 @@ export class AdminCompaniesService {
           companyId = await this.conn.transaction(async (tx) => {
             const [c] = await tx
               .insert(companies)
-              .values({ code: String(randomInt(100000, 1000000)), name: dados.name })
+              .values({ code: String(randomInt(100000, 1000000)), name: dados.name, ...colunasEndereco(dados.address) })
               .returning({ id: companies.id });
             await tx.insert(members).values({
               companyId: c!.id,
@@ -140,6 +170,17 @@ export class AdminCompaniesService {
     const [c] = await this.conn
       .update(companies)
       .set(dados.status === "blocked" ? { status: "blocked", blockedReason: dados.reason } : { status: "active", blockedReason: null })
+      .where(eq(companies.id, id))
+      .returning({ id: companies.id });
+    if (!c) throw naoEncontrado();
+    return this.um(id);
+  }
+
+  /** Corrige ou completa o endereço (os restaurantes antigos não têm). */
+  async setAddress(id: string, endereco: Address): Promise<AdminCompany> {
+    const [c] = await this.conn
+      .update(companies)
+      .set(colunasEndereco(endereco))
       .where(eq(companies.id, id))
       .returning({ id: companies.id });
     if (!c) throw naoEncontrado();
