@@ -23,6 +23,7 @@ describe("Ajustes do restaurante", () => {
   const http = () => request(app.getHttpServer());
   const como = (token: string) => ({
     get: (url: string) => http().get(url).set("Authorization", `Bearer ${token}`),
+    post: (url: string) => http().post(url).set("Authorization", `Bearer ${token}`),
     put: (url: string) => http().put(url).set("Authorization", `Bearer ${token}`),
   });
 
@@ -62,7 +63,7 @@ describe("Ajustes do restaurante", () => {
   it("salva os dados normalizados e o cardápio online mostra o WhatsApp", async () => {
     const r = await como(dono)
       .put("/api/company")
-      .send({ name: " Cantina da Nonna ", legalName: "Nonna LTDA", document: "12.345.678/0001-95", whatsapp: "+55 (55) 99999-8888" })
+      .send({ name: " Cantina da Nonna ", legalName: "Nonna LTDA", document: "12.345.678/0001-95", whatsapp: "+55 (55) 99999-8888", serviceFeeBps: 1000 })
       .expect(200);
     expect(r.body).toEqual({
       code: codigo,
@@ -71,22 +72,37 @@ describe("Ajustes do restaurante", () => {
       document: "12345678000195",
       // DDD 55 (RS) continua: só o 55 do país sai.
       whatsapp: "55999998888",
+      serviceFeeBps: 1000,
     });
     const loja = await http().get(`/api/storefront/${codigo}`).expect(200);
     expect(loja.body.company).toMatchObject({ name: "Cantina da Nonna", whatsapp: "55999998888" });
 
     // Campo vazio apaga.
-    const limpo = await como(dono).put("/api/company").send({ name: "Cantina", legalName: "", document: "", whatsapp: " " }).expect(200);
+    const limpo = await como(dono).put("/api/company").send({ name: "Cantina", legalName: "", document: "", whatsapp: " ", serviceFeeBps: 1000 }).expect(200);
     expect(limpo.body).toMatchObject({ legalName: null, document: null, whatsapp: null });
     // O nome novo aparece no perfil da sessão.
     expect((await como(dono).get("/api/auth/me")).body.company.name).toBe("Cantina");
   });
 
   it("recusa dados inválidos, quem não pode e não mexe em outro restaurante", async () => {
-    await como(dono).put("/api/company").send({ name: "X", document: "123", whatsapp: "999" }).expect(400);
+    await como(dono).put("/api/company").send({ name: "X", document: "123", whatsapp: "999", serviceFeeBps: 1000 }).expect(400);
+    await como(dono).put("/api/company").send({ name: "Cantina", serviceFeeBps: 2500 }).expect(400);
+    await como(dono).put("/api/company").send({ name: "Cantina" }).expect(400); // a taxa é obrigatória
     await como(garcom).get("/api/company").expect(403);
-    await como(garcom).put("/api/company").send({ name: "Invadido" }).expect(403);
-    await como(donoB).put("/api/company").send({ name: "Bistrô Novo" }).expect(200);
-    expect((await como(dono).get("/api/company")).body.name).toBe("Cantina da Nona");
+    await como(garcom).put("/api/company").send({ name: "Invadido", serviceFeeBps: 0 }).expect(403);
+    await como(donoB).put("/api/company").send({ name: "Bistrô Novo", serviceFeeBps: 0 }).expect(200);
+    expect((await como(dono).get("/api/company")).body).toMatchObject({ name: "Cantina da Nona", serviceFeeBps: 1000 });
+  });
+
+  it("a taxa padrão vale para as mesas abertas depois; as já abertas não mudam", async () => {
+    const antes = (await como(dono).post("/api/tabs").send({ tableNumber: 1 }).expect(201)).body;
+    expect(antes.serviceFeeBps).toBe(1000);
+    await como(dono).put("/api/company").send({ name: "Cantina da Nona", serviceFeeBps: 1250 }).expect(200);
+    const depois = (await como(dono).post("/api/tabs").send({ tableNumber: 2 }).expect(201)).body;
+    expect(depois.serviceFeeBps).toBe(1250);
+    expect((await como(dono).get(`/api/tabs/${antes.id}`)).body.serviceFeeBps).toBe(1000);
+    // Sem taxa: a mesa abre com 0%.
+    await como(dono).put("/api/company").send({ name: "Cantina da Nona", serviceFeeBps: 0 }).expect(200);
+    expect((await como(dono).post("/api/tabs").send({ tableNumber: 3 }).expect(201)).body.serviceFeeBps).toBe(0);
   });
 });

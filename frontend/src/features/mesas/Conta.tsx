@@ -16,6 +16,7 @@ import {
   type TabSummary,
 } from "@mesaflow/shared";
 import { ApiErro } from "@/lib/http";
+import { useSessao } from "@/lib/useSessao";
 import { Aviso, Botao, Campo, Comanda, CorteComanda, Dialogo, Etiqueta, Seletor } from "@/ui/componentes";
 import { Icone } from "@/ui/Icone";
 import { hora } from "../pedidos/ticket";
@@ -90,11 +91,14 @@ export function Conta({
     setRecado(msg);
   };
 
+  const padraoSessao = useSessao("membro")?.profile.company.serviceFeeBps ?? 0;
+  const taxaDeVolta = padraoSessao > 0 ? padraoSessao : DEFAULT_SERVICE_FEE_BPS;
+
   async function alternarTaxa() {
     if (!c) return;
     setMudandoTaxa(true);
     try {
-      const novo = await apiMesas.taxa(c.id, c.serviceFeeBps > 0 ? 0 : DEFAULT_SERVICE_FEE_BPS);
+      const novo = await apiMesas.taxa(c.id, c.serviceFeeBps > 0 ? 0 : taxaDeVolta);
       feito(novo, novo.serviceFeeBps > 0 ? "Taxa de serviço de volta na conta." : "Taxa de serviço retirada.");
     } catch (falha) {
       setRecado(falha instanceof ApiErro ? falha.message : "Não foi possível mudar a taxa.");
@@ -287,7 +291,7 @@ export function Conta({
                     <>
                       {" "}
                       <button type="button" className="link-btn" disabled={mudandoTaxa} onClick={alternarTaxa}>
-                        {c.serviceFeeBps > 0 ? "tirar" : "pôr 10%"}
+                        {c.serviceFeeBps > 0 ? "tirar" : `pôr ${(taxaDeVolta / 100).toLocaleString("pt-BR")}%`}
                       </button>
                     </>
                   )}

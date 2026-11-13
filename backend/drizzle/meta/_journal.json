@@ -43,6 +43,13 @@
       "when": 1793754021570,
       "tag": "0005_qr_mesa_e_chamados",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794611461775,
+      "tag": "0006_taxa_servico_padrao",
+      "breakpoints": true
     }
   ]
 }

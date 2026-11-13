@@ -61,7 +61,7 @@ export class DrizzleIdentityRepository extends IdentityRepository {
           // Chaves desconhecidas no banco são ignoradas, nunca viram acesso.
           permissions: member.permissions.filter(isPermission),
         },
-        company: { id: company.id, code: company.code, name: company.name },
+        company: { id: company.id, code: company.code, name: company.name, serviceFeeBps: company.serviceFeeBps },
       },
       memberActive: member.status === "active",
       companyActive: company.status === "active",

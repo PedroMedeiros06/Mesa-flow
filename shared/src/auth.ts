@@ -54,6 +54,8 @@ export const memberProfileSchema = z.object({
     id: z.uuid(),
     code: z.string(),
     name: z.string(),
+    // Taxa de serviço padrão (pontos-base). O default cobre sessões salvas antes deste campo existir.
+    serviceFeeBps: z.number().int().default(1000),
   }),
 });
 export type MemberProfile = z.infer<typeof memberProfileSchema>;

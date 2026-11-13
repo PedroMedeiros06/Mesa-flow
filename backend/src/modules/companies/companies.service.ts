@@ -11,6 +11,7 @@ const campos = {
   legalName: companies.legalName,
   document: companies.document,
   whatsapp: companies.whatsapp,
+  serviceFeeBps: companies.serviceFeeBps,
 };
 
 /** Dados do restaurante da sessão (tela Ajustes). */

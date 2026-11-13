@@ -6,7 +6,7 @@ function perfil(role: "owner" | "employee", permissions: Permission[] = []): Mem
   return {
     kind: "member",
     member: { id: "11111111-1111-4111-8111-111111111111", name: "Teste", email: "t@t.com", role, permissions },
-    company: { id: "22222222-2222-4222-8222-222222222222", code: "482915", name: "Cantina" },
+    company: { id: "22222222-2222-4222-8222-222222222222", code: "482915", name: "Cantina", serviceFeeBps: 1000 },
   };
 }
 

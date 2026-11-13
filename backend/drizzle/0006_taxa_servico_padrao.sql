@@ -1,0 +1,2 @@
+ALTER TABLE "app"."companies" ADD COLUMN "service_fee_bps" integer DEFAULT 1000 NOT NULL;--> statement-breakpoint
+ALTER TABLE "app"."companies" ADD CONSTRAINT "companies_fee_range" CHECK ("app"."companies"."service_fee_bps" between 0 and 2000);

@@ -21,7 +21,7 @@ import {
 } from "@mesaflow/shared";
 import type { z } from "zod";
 import { DB, type Database, type Transaction } from "../../db/database.module.js";
-import { members, orderItems, orders, tabEvents, tabPayments, tabs, waiterCalls } from "../../db/schema.js";
+import { companies, members, orderItems, orders, tabEvents, tabPayments, tabs, waiterCalls } from "../../db/schema.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { StockService } from "../stock/stock.service.js";
 
@@ -231,6 +231,12 @@ export class TabsService {
 
   // ---------- abrir e lançar ----------
 
+  /** Taxa com que a mesa abre: a do restaurante (Ajustes). A mesa guarda uma cópia, então mudar depois não mexe nas abertas. */
+  private async taxaPadrao(tx: Transaction, companyId: string): Promise<number> {
+    const [c] = await tx.select({ bps: companies.serviceFeeBps }).from(companies).where(eq(companies.id, companyId));
+    return c?.bps ?? DEFAULT_SERVICE_FEE_BPS;
+  }
+
   async open(companyId: string, memberId: string, data: AbrirData): Promise<TabDetail> {
     const label = data.label || `Mesa ${data.tableNumber}`;
     try {
@@ -241,7 +247,7 @@ export class TabsService {
             companyId,
             label,
             tableNumber: data.tableNumber,
-            serviceFeeBps: DEFAULT_SERVICE_FEE_BPS,
+            serviceFeeBps: await this.taxaPadrao(tx, companyId),
             openedBy: memberId,
           })
           .returning({ id: tabs.id });
@@ -321,7 +327,7 @@ export class TabsService {
             companyId,
             label,
             tableNumber,
-            serviceFeeBps: DEFAULT_SERVICE_FEE_BPS,
+            serviceFeeBps: await this.taxaPadrao(tx, companyId),
             openedBy: memberId,
           });
           await this.evento(tx, companyId, tabId, memberId, "aberta", `Comanda aberta pelo balcão: ${label}`);

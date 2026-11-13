@@ -6,7 +6,7 @@ import { Aviso, Botao, Campo, Comanda } from "@/ui/componentes";
 import { errosPorCampo, type ErrosCampos } from "../acesso/erros";
 import "./ajustes.css";
 
-type CampoAjuste = "name" | "legalName" | "document" | "whatsapp";
+type CampoAjuste = "name" | "legalName" | "document" | "whatsapp" | "serviceFeeBps";
 
 const corpo = (dados: unknown): RequestInit => ({
   method: "PUT",
@@ -36,6 +36,13 @@ function mascaraTelefone(v: string): string {
   return `(${d.slice(0, 2)}) ${resto.slice(0, meio)}${resto.length > meio ? `-${resto.slice(meio)}` : ""}`;
 }
 
+/** "10" ou "12,5" (%) para pontos-base; null se não for um número com até duas casas. */
+function taxaEmBps(texto: string): number | null {
+  const t = texto.trim().replace("%", "").replace(",", ".");
+  if (!/^\d{1,2}(\.\d{1,2})?$/.test(t)) return null;
+  return Math.round(Number(t) * 100);
+}
+
 /** Tela /app/ajustes: dados do restaurante e o WhatsApp que aparece no cardápio online. */
 export function Ajustes() {
   const [atual, setAtual] = useState<CompanySettings | null>(null);
@@ -43,6 +50,7 @@ export function Ajustes() {
   const [razao, setRazao] = useState("");
   const [documento, setDocumento] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [taxa, setTaxa] = useState("");
   const [erros, setErros] = useState<ErrosCampos<CampoAjuste>>({});
   const [erro, setErro] = useState<string | null>(null);
   const [salvo, setSalvo] = useState(false);
@@ -54,6 +62,7 @@ export function Ajustes() {
     setRazao(c.legalName ?? "");
     setDocumento(mascaraDocumento(c.document ?? ""));
     setWhatsapp(mascaraTelefone(c.whatsapp ?? ""));
+    setTaxa((c.serviceFeeBps / 100).toLocaleString("pt-BR"));
   }
 
   useEffect(() => {
@@ -67,7 +76,12 @@ export function Ajustes() {
     e.preventDefault();
     setErro(null);
     setSalvo(false);
-    const dados = { name: nome, legalName: razao, document: documento, whatsapp };
+    const bps = taxaEmBps(taxa);
+    if (bps === null) {
+      setErros({ serviceFeeBps: "Use um número como 10 ou 12,5" });
+      return;
+    }
+    const dados = { name: nome, legalName: razao, document: documento, whatsapp, serviceFeeBps: bps };
     const valido = companySettingsInputSchema.safeParse(dados);
     if (!valido.success) {
       setErros(errosPorCampo<CampoAjuste>(valido.error.issues.map((i) => ({ path: i.path.join("."), message: i.message }))));
@@ -143,9 +157,15 @@ export function Ajustes() {
 
           <Comanda como="section" aria-label="Taxa de serviço">
             <h2>Taxa de serviço</h2>
-            <p className="suave">
-              Toda mesa abre com 10%. Na hora de fechar a conta, dá para tirar ou mudar a taxa daquela mesa.
-            </p>
+            <Campo
+              rotulo="Taxa de serviço (%)"
+              inputMode="decimal"
+              placeholder="10"
+              value={taxa}
+              onChange={(e) => setTaxa(e.target.value)}
+              erro={erros.serviceFeeBps}
+              ajuda="Toda mesa nova abre com esta taxa (de 0 a 20%). Na hora de fechar, dá para tirar a taxa daquela mesa. Mudar aqui não mexe nas mesas já abertas."
+            />
           </Comanda>
 
           <div className="ajustes-acoes">
