@@ -9,5 +9,6 @@ export * from "./members.js";
 export * from "./money.js";
 export * from "./orders.js";
 export * from "./permissions.js";
+export * from "./plans.js";
 export * from "./stock.js";
 export * from "./tabs.js";

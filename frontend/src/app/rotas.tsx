@@ -16,6 +16,7 @@ import { EsqueciSenha } from "@/features/acesso/EsqueciSenha";
 import { Equipe } from "@/features/equipe/Equipe";
 import { Cobranca } from "@/features/admin/Cobranca";
 import { PainelAdmin } from "@/features/admin/PainelAdmin";
+import { Planos } from "@/features/admin/Planos";
 import { Restaurantes } from "@/features/admin/Restaurantes";
 import { VisaoGeral } from "@/features/admin/VisaoGeral";
 import { MENU_PAINEL } from "@/features/painel/menu";
@@ -83,6 +84,7 @@ export const rotas: RouteObject[] = [
       { index: true, element: <VisaoGeral /> },
       { path: "restaurantes", element: <Restaurantes /> },
       { path: "cobranca", element: <Cobranca /> },
+      { path: "planos", element: <Planos /> },
     ],
   },
   { path: "*", element: <NaoEncontrado /> },

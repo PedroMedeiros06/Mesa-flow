@@ -35,6 +35,8 @@ describe("Cobrança manual", () => {
   let empresaB: string;
   let empresaSemPlano: string;
 
+  /** Planos do catálogo (Essencial e Completo vêm da migração 0009): nome -> id. */
+  let planos: Record<string, string> = {};
   const http = () => request(app.getHttpServer());
   const como = (token: string) => ({
     get: (url: string) => http().get(url).set("Authorization", `Bearer ${token}`),
@@ -72,6 +74,9 @@ describe("Cobrança manual", () => {
     await banco.db.execute(sql`insert into auth.users (id) values (${adminId})`);
     await banco.db.insert(platformAdmins).values({ authUserId: adminId, name: "Admin", email: "admin@mesaflow.com" });
     admin = await emitir(adminId);
+    planos = Object.fromEntries(
+      ((await como(admin).get("/api/admin/plans").expect(200)).body as { name: string; id: string }[]).map((x) => [x.name, x.id]),
+    );
 
     const a = await criarRestaurante(banco, { nome: "Cantina" });
     const g = await criarPessoa(banco, a.companyId, { permissions: ["tabs.view"] });
@@ -84,8 +89,8 @@ describe("Cobrança manual", () => {
     garcom = await emitir(g.authUserId);
     donoB = await emitir(b.authUserId);
 
-    await como(admin).put(`/api/admin/companies/${empresaA}/subscription`).send({ plan: "Completo", priceCents: 9990, dueDay: 10 }).expect(200);
-    await como(admin).put(`/api/admin/companies/${empresaB}/subscription`).send({ plan: "Essencial", priceCents: 4990, dueDay: 28 }).expect(200);
+    await como(admin).put(`/api/admin/companies/${empresaA}/subscription`).send({ planId: planos.Completo, priceCents: 9990, dueDay: 10 }).expect(200);
+    await como(admin).put(`/api/admin/companies/${empresaB}/subscription`).send({ planId: planos.Essencial, priceCents: 4990, dueDay: 28 }).expect(200);
   });
 
   it("gera as faturas do mês só para quem tem plano, e repetir não duplica", async () => {
@@ -99,12 +104,13 @@ describe("Cobrança manual", () => {
     expect(linha(out.rows, empresaSemPlano)).toMatchObject({ subscription: null, invoice: null });
 
     // Mudar o plano depois não mexe na fatura já gerada.
-    await como(admin).put(`/api/admin/companies/${empresaA}/subscription`).send({ plan: "Completo", priceCents: 12000, dueDay: 5 }).expect(200);
+    await como(admin).put(`/api/admin/companies/${empresaA}/subscription`).send({ planId: planos.Completo, priceCents: 12000, dueDay: 5 }).expect(200);
     expect(linha((await mes("2026-10")).rows, empresaA).invoice!.amountCents).toBe(9990);
 
     await como(admin).post("/api/admin/billing/generate").send({ month: "2026-13" }).expect(400);
-    await como(admin).put(`/api/admin/companies/${empresaA}/subscription`).send({ plan: "X1", priceCents: 100, dueDay: 31 }).expect(400);
-    await como(admin).put(`/api/admin/companies/${randomUUID()}/subscription`).send({ plan: "Completo", priceCents: 100, dueDay: 1 }).expect(404);
+    await como(admin).put(`/api/admin/companies/${empresaA}/subscription`).send({ planId: planos.Completo, priceCents: 100, dueDay: 31 }).expect(400);
+    await como(admin).put(`/api/admin/companies/${randomUUID()}/subscription`).send({ planId: planos.Completo, priceCents: 100, dueDay: 1 }).expect(404);
+    await como(admin).put(`/api/admin/companies/${empresaA}/subscription`).send({ planId: randomUUID(), priceCents: 100, dueDay: 1 }).expect(404);
   });
 
   it("atrasada é pendente com vencimento antes de hoje em São Paulo; vencendo hoje ainda não", async () => {
@@ -156,7 +162,7 @@ describe("Cobrança manual", () => {
   it("só a equipe MesaFlow mexe na cobrança", async () => {
     await como(dono).get("/api/admin/billing").expect(403);
     await como(dono).post("/api/admin/billing/generate").send({ month: "2026-10" }).expect(403);
-    await como(dono).put(`/api/admin/companies/${empresaA}/subscription`).send({ plan: "Grátis", priceCents: 1, dueDay: 1 }).expect(403);
+    await como(dono).put(`/api/admin/companies/${empresaA}/subscription`).send({ planId: planos.Completo, priceCents: 1, dueDay: 1 }).expect(403);
     await http().get("/api/admin/billing").expect(401);
     await http().get("/api/billing/status").expect(401);
   });

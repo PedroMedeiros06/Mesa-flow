@@ -124,10 +124,11 @@
 }
 .lp-planos-grade {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Quantos planos o admin cadastrar: lado a lado enquanto couber. */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 24px;
   margin-top: 36px;
-  max-width: 880px;
+  max-width: 1100px;
 }
 .plano {
   border: 2px solid var(--tinta);
@@ -241,4 +242,10 @@
 .lp-rodape a {
   color: var(--tinta-2);
   font-weight: 700;
+}
+
+/* Descrição do plano (vem do admin) */
+.plano-descricao {
+  margin: 0;
+  opacity: 0.85;
 }

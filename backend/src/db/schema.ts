@@ -593,6 +593,29 @@ export const waiterCalls = app
 
 export const invoiceStatus = app.enum("invoice_status", ["pending", "paid", "canceled"]);
 
+// Planos que o MesaFlow vende. Aparecem no site (os ativos) e são escolhidos na Cobrança.
+// Os itens são só texto: o sistema não bloqueia recurso por plano.
+export const plans = app
+  .table(
+    "plans",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      name: text("name").notNull(),
+      priceCents: integer("price_cents").notNull(),
+      description: text("description").notNull().default(""),
+      features: text("features").array().notNull().default(sql`'{}'::text[]`),
+      highlighted: boolean("highlighted").notNull().default(false),
+      active: boolean("active").notNull().default(true),
+      position: integer("position").notNull().default(0),
+      ...timestamps,
+    },
+    (t) => [
+      uniqueIndex("plans_name").on(sql`lower(${t.name})`),
+      check("plans_price", sql`${t.priceCents} > 0`),
+    ],
+  )
+  .enableRLS();
+
 // Plano de cada restaurante. Nome e preço ficam aqui (texto e centavos), porque a tabela de preços
 // ainda vai mudar: trocar o nome de um plano não exige migração.
 export const subscriptions = app
@@ -602,6 +625,9 @@ export const subscriptions = app
       companyId: uuid("company_id")
         .primaryKey()
         .references(() => companies.id, { onDelete: "cascade" }),
+      // Plano do catálogo. O nome e o preço ficam copiados aqui: o preço do cliente pode ser
+      // diferente do preço atual do plano (quem entrou antes de um reajuste).
+      planId: uuid("plan_id").references(() => plans.id, { onDelete: "set null" }),
       plan: text("plan").notNull(),
       priceCents: integer("price_cents").notNull(),
       // Dia do vencimento: até 28 para existir em todo mês.

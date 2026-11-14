@@ -64,6 +64,13 @@
       "when": 1794612974336,
       "tag": "0008_endereco_restaurante",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794614816296,
+      "tag": "0009_catalogo_de_planos",
+      "breakpoints": true
     }
   ]
 }

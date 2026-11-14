@@ -11,6 +11,7 @@ import type {
 import type { z } from "zod";
 import { DB, type Database } from "../../db/database.module.js";
 import { companies, invoices, subscriptions } from "../../db/schema.js";
+import { PlansService } from "../plans/plans.service.js";
 import { hojeNoFuso } from "../dashboard/dashboard.service.js";
 
 type Linha = typeof invoices.$inferSelect;
@@ -46,7 +47,10 @@ function paraApi(f: Linha, hoje: string): Invoice {
  */
 @Injectable()
 export class BillingService {
-  constructor(@Inject(DB) private readonly db: Database | null) {}
+  constructor(
+    @Inject(DB) private readonly db: Database | null,
+    private readonly plans: PlansService,
+  ) {}
 
   private get conn(): Database {
     if (!this.db) throw new ServiceUnavailableException({ statusCode: 503, message: "Banco não configurado." });
@@ -72,7 +76,7 @@ export class BillingService {
       return {
         company: { id: company.id, code: company.code, name: company.name, status: company.status },
         subscription: subscription
-          ? { plan: subscription.plan, priceCents: subscription.priceCents, dueDay: subscription.dueDay }
+          ? { planId: subscription.planId, plan: subscription.plan, priceCents: subscription.priceCents, dueDay: subscription.dueDay }
           : null,
         invoice: invoice ? paraApi(invoice, hoje) : null,
         overdue: {
@@ -97,11 +101,18 @@ export class BillingService {
   async setSubscription(companyId: string, dados: z.output<typeof subscriptionInputSchema>): Promise<Subscription> {
     const [existe] = await this.conn.select({ id: companies.id }).from(companies).where(eq(companies.id, companyId));
     if (!existe) throw new NotFoundException({ statusCode: 404, message: "Restaurante não encontrado." });
+    const plan = await this.plans.nome(dados.planId);
+    const valores = { planId: dados.planId, plan, priceCents: dados.priceCents, dueDay: dados.dueDay };
     const [s] = await this.conn
       .insert(subscriptions)
-      .values({ companyId, ...dados })
-      .onConflictDoUpdate({ target: subscriptions.companyId, set: { ...dados, updatedAt: new Date() } })
-      .returning({ plan: subscriptions.plan, priceCents: subscriptions.priceCents, dueDay: subscriptions.dueDay });
+      .values({ companyId, ...valores })
+      .onConflictDoUpdate({ target: subscriptions.companyId, set: { ...valores, updatedAt: new Date() } })
+      .returning({
+        planId: subscriptions.planId,
+        plan: subscriptions.plan,
+        priceCents: subscriptions.priceCents,
+        dueDay: subscriptions.dueDay,
+      });
     return s!;
   }
 

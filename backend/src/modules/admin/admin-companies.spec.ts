@@ -44,6 +44,8 @@ describe("Admin: restaurantes", () => {
     },
   };
 
+  /** Planos do catálogo (Essencial e Completo vêm da migração 0009): nome -> id. */
+  let planos: Record<string, string> = {};
   const http = () => request(app.getHttpServer());
   const como = (token: string) => ({
     get: (url: string) => http().get(url).set("Authorization", `Bearer ${token}`),
@@ -91,6 +93,9 @@ describe("Admin: restaurantes", () => {
     await banco.db.execute(sql`insert into auth.users (id) values (${adminId})`);
     await banco.db.insert(platformAdmins).values({ authUserId: adminId, name: "Admin", email: "admin@mesaflow.com" });
     admin = await emitir(adminId);
+    planos = Object.fromEntries(
+      ((await como(admin).get("/api/admin/plans").expect(200)).body as { name: string; id: string }[]).map((x) => [x.name, x.id]),
+    );
     const r = await criarRestaurante(banco, { nome: "Cantina Antiga" });
     donoExistente = await emitir(r.authUserId);
     codigoExistente = (await como(donoExistente).get("/api/auth/me")).body.company.code;
@@ -180,9 +185,9 @@ describe("Admin: restaurantes", () => {
     const b = await criar("b@x.com", "são paulo ", "SP", "11144477735");
     const c = await criar("c@x.com", "Curitiba", "PR", "39053344705");
     const d = await criar("d@x.com", "Porto Alegre", "RS", "71428793860");
-    await como(admin).put(`/api/admin/companies/${a.id}/subscription`).send({ plan: "Completo", priceCents: 9990, dueDay: 10 }).expect(200);
-    await como(admin).put(`/api/admin/companies/${b.id}/subscription`).send({ plan: "Essencial", priceCents: 4990, dueDay: 10 }).expect(200);
-    await como(admin).put(`/api/admin/companies/${d.id}/subscription`).send({ plan: "Completo", priceCents: 9990, dueDay: 10 }).expect(200);
+    await como(admin).put(`/api/admin/companies/${a.id}/subscription`).send({ planId: planos.Completo, priceCents: 9990, dueDay: 10 }).expect(200);
+    await como(admin).put(`/api/admin/companies/${b.id}/subscription`).send({ planId: planos.Essencial, priceCents: 4990, dueDay: 10 }).expect(200);
+    await como(admin).put(`/api/admin/companies/${d.id}/subscription`).send({ planId: planos.Completo, priceCents: 9990, dueDay: 10 }).expect(200);
     // Bloqueado sai do mapa e do esperado.
     await como(admin).put(`/api/admin/companies/${d.id}/status`).send({ status: "blocked", reason: "Teste" }).expect(200);
     void c;

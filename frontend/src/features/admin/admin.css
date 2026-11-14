@@ -163,3 +163,65 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Planos */
+.planos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  max-width: 1100px;
+}
+.plano-admin {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  height: 100%;
+}
+.plano-admin-destaque {
+  outline: 3px solid var(--laranja);
+  outline-offset: -3px;
+}
+.plano-admin-inativo {
+  opacity: 0.65;
+}
+.plano-admin-cab {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.plano-admin h2 {
+  font-size: var(--t-xl);
+}
+.plano-admin .numeral {
+  font-size: var(--t-2xl);
+}
+.plano-admin-etiquetas {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.plano-admin-itens {
+  margin: 0;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 4px;
+  font-size: var(--t-sm);
+}
+.plano-admin-uso {
+  font-size: var(--t-sm);
+}
+.plano-admin-acoes {
+  justify-content: flex-start;
+}
+.plano-escolha {
+  display: grid;
+  gap: 8px;
+}
+.plano-admin-etiquetas .etiqueta {
+  white-space: nowrap;
+}

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
+  adminPlanSchema,
   BILLING_METHOD_LABELS,
   BILLING_METHODS,
   billingMonthSchema,
   formatMoney,
   generateInvoicesResultSchema,
   parseMoney,
-  PLAN_SUGGESTIONS,
+  type AdminPlan,
   type BillingMethod,
   type BillingMonth,
   type BillingRow,
@@ -25,6 +26,7 @@ const corpo = (method: string, dados?: unknown): RequestInit => ({
   body: dados === undefined ? undefined : JSON.stringify(dados),
 });
 const mensagem = (falha: unknown, padrao: string) => (falha instanceof ApiErro ? falha.message : padrao);
+const reais = (c: number) => formatMoney(c).replace(/^R\$\s?/, "");
 
 /** Mês atual (AAAA-MM) no fuso de São Paulo. */
 const mesAtual = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()).slice(0, 7);
@@ -265,28 +267,45 @@ export function Cobranca() {
 
 function EditarPlano({ linha, aoFechar, aoSalvar }: { linha: BillingRow; aoFechar: () => void; aoSalvar: () => void }) {
   const s = linha.subscription;
-  const [plano, setPlano] = useState(s?.plan ?? PLAN_SUGGESTIONS[1].plan);
-  const [valor, setValor] = useState(formatMoney(s?.priceCents ?? PLAN_SUGGESTIONS[1].priceCents).replace(/^R\$\s?/, ""));
+  const [planos, setPlanos] = useState<AdminPlan[] | null>(null);
+  const [planoId, setPlanoId] = useState<string | null>(s?.planId ?? null);
+  const [valor, setValor] = useState(s ? reais(s.priceCents) : "");
   const [dia, setDia] = useState(String(s?.dueDay ?? 10));
-  const [erros, setErros] = useState<{ plan?: string; priceCents?: string; dueDay?: string }>({});
+  const [erros, setErros] = useState<{ planId?: string; priceCents?: string; dueDay?: string }>({});
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    pedir("/admin/plans")
+      .then((r) => setPlanos(adminPlanSchema.array().parse(r)))
+      .catch((falha: unknown) => setErro(mensagem(falha, "Não foi possível carregar os planos.")));
+  }, []);
+
+  // Mostra os planos ativos e também o atual do restaurante, mesmo que esteja fora do site.
+  const opcoes = planos?.filter((p) => p.active || p.id === planoId) ?? [];
+  const escolhido = planos?.find((p) => p.id === planoId);
+
+  function escolher(p: AdminPlan) {
+    setPlanoId(p.id);
+    setValor(reais(p.priceCents));
+    setErros((e) => ({ ...e, planId: undefined }));
+  }
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
     const priceCents = parseMoney(valor);
     const dueDay = /^\d{1,2}$/.test(dia) ? Number(dia) : NaN;
     const novos = {
-      plan: plano.trim().length < 2 ? "Informe o plano" : undefined,
+      planId: planoId ? undefined : "Escolha o plano",
       priceCents: !priceCents || priceCents < 1 ? "Valor inválido. Use, por exemplo, 99,90" : undefined,
       dueDay: !(dueDay >= 1 && dueDay <= 28) ? "Dia de 1 a 28" : undefined,
     };
     setErros(novos);
-    if (novos.plan || novos.priceCents || novos.dueDay) return;
+    if (novos.planId || novos.priceCents || novos.dueDay) return;
     setEnviando(true);
     setErro(null);
     try {
-      await pedir(`/admin/companies/${linha.company.id}/subscription`, corpo("PUT", { plan: plano, priceCents, dueDay }));
+      await pedir(`/admin/companies/${linha.company.id}/subscription`, corpo("PUT", { planId: planoId, priceCents, dueDay }));
       aoSalvar();
     } catch (falha) {
       setErro(mensagem(falha, "Não foi possível salvar."));
@@ -298,23 +317,40 @@ function EditarPlano({ linha, aoFechar, aoSalvar }: { linha: BillingRow; aoFecha
     <Dialogo aberto aoFechar={aoFechar} titulo={`Plano: ${linha.company.name}`}>
       <form onSubmit={salvar} noValidate className="admin-form">
         {erro && <Aviso>{erro}</Aviso>}
-        <div className="cobranca-sugestoes" role="group" aria-label="Planos sugeridos">
-          {PLAN_SUGGESTIONS.map((p) => (
-            <button
-              key={p.plan}
-              type="button"
-              aria-pressed={plano === p.plan}
-              onClick={() => {
-                setPlano(p.plan);
-                setValor(formatMoney(p.priceCents).replace(/^R\$\s?/, ""));
-              }}
-            >
-              {p.plan} · {formatMoney(p.priceCents)}
-            </button>
-          ))}
-        </div>
-        <Campo rotulo="Nome do plano" value={plano} onChange={(e) => setPlano(e.target.value)} erro={erros.plan} maxLength={40} />
-        <Campo rotulo="Valor por mês (R$)" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} erro={erros.priceCents} />
+        {s && !s.planId && (
+          <p className="suave">
+            Hoje: {s.plan}, {formatMoney(s.priceCents)}. Escolha um plano da lista para ligar a assinatura ao catálogo.
+          </p>
+        )}
+        <fieldset className="pagamento">
+          <legend>Plano</legend>
+          {!planos ? (
+            <p className="suave">Carregando os planos...</p>
+          ) : opcoes.length === 0 ? (
+            <p className="suave">Nenhum plano cadastrado. Crie um em Planos.</p>
+          ) : (
+            <div className="cobranca-sugestoes">
+              {opcoes.map((p) => (
+                <button key={p.id} type="button" aria-pressed={planoId === p.id} onClick={() => escolher(p)}>
+                  {p.name} · {formatMoney(p.priceCents)}
+                </button>
+              ))}
+            </div>
+          )}
+          {erros.planId && <span className="campo-erro">{erros.planId}</span>}
+        </fieldset>
+        <Campo
+          rotulo="Valor deste restaurante por mês (R$)"
+          inputMode="decimal"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          erro={erros.priceCents}
+          ajuda={
+            escolhido && parseMoney(valor) !== escolhido.priceCents
+              ? `Diferente do valor do plano (${formatMoney(escolhido.priceCents)}): desconto ou preço antigo.`
+              : "Vem do plano; mude se este restaurante paga outro valor."
+          }
+        />
         <Campo
           rotulo="Dia do vencimento"
           inputMode="numeric"

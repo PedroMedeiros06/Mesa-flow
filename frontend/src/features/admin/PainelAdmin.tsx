@@ -9,6 +9,7 @@ const MENU_ADMIN: ItemCasca[] = [
   { id: "inicio", nome: "Visão geral", icone: "inicio", caminho: "/admin" },
   { id: "restaurantes", nome: "Restaurantes", icone: "loja", caminho: "/admin/restaurantes" },
   { id: "cobranca", nome: "Cobrança", icone: "cobranca", caminho: "/admin/cobranca" },
+  { id: "planos", nome: "Planos", icone: "cardapio", caminho: "/admin/planos" },
 ];
 
 /** /admin: só para a equipe MesaFlow. */

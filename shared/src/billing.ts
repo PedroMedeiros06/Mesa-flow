@@ -1,11 +1,5 @@
 import { z } from "zod";
 
-/** Sugestões para o cadastro do plano. Os preços ainda são provisórios: cada assinatura guarda o próprio valor. */
-export const PLAN_SUGGESTIONS = [
-  { plan: "Essencial", priceCents: 4990 },
-  { plan: "Completo", priceCents: 9990 },
-] as const;
-
 export const BILLING_METHODS = ["pix", "boleto", "cartao", "transferencia", "dinheiro"] as const;
 export type BillingMethod = (typeof BILLING_METHODS)[number];
 export const BILLING_METHOD_LABELS: Record<BillingMethod, string> = {
@@ -23,14 +17,20 @@ export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Mês inv
 
 export const billingQuerySchema = z.object({ month: monthSchema.optional() });
 
+/** O nome vem do plano escolhido; o valor pode ser diferente do valor do plano (desconto, preço antigo). */
 export const subscriptionInputSchema = z.object({
-  plan: z.string().trim().min(2, "Informe o plano").max(40, "Nome do plano muito longo"),
+  planId: z.uuid("Escolha o plano"),
   priceCents: z.number({ error: "Informe o valor" }).int().min(1, "Informe o valor").max(10_000_000),
   dueDay: z.number({ error: "Informe o dia" }).int().min(1, "Dia de 1 a 28").max(28, "Dia de 1 a 28"),
 });
 export type SubscriptionInput = z.input<typeof subscriptionInputSchema>;
 
-export const subscriptionSchema = z.object({ plan: z.string(), priceCents: z.number().int(), dueDay: z.number().int() });
+export const subscriptionSchema = z.object({
+  planId: z.uuid().nullable(),
+  plan: z.string(),
+  priceCents: z.number().int(),
+  dueDay: z.number().int(),
+});
 export type Subscription = z.infer<typeof subscriptionSchema>;
 
 export const invoiceSchema = z.object({

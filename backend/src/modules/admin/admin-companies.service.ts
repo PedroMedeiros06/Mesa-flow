@@ -123,9 +123,10 @@ export class AdminCompaniesService {
         district: companies.addressDistrict,
         city: companies.addressCity,
         state: companies.addressState,
-        membersCount: sql<number>`(select count(*)::int from ${members} m where m.company_id = ${companies.id})`,
-        ordersLast30Days: sql<number>`(select count(*)::int from ${orders} o where o.company_id = ${companies.id} and o.created_at > now() - interval '30 days')`,
-        lastOrderAt: sql<string | null>`(select max(o.created_at) from ${orders} o where o.company_id = ${companies.id})`,
+        // Coluna da empresa citada com a tabela, para não virar a coluna de mesmo nome da subconsulta.
+        membersCount: sql<number>`(select count(*)::int from ${members} m where m.company_id = "companies"."id")`,
+        ordersLast30Days: sql<number>`(select count(*)::int from ${orders} o where o.company_id = "companies"."id" and o.created_at > now() - interval '30 days')`,
+        lastOrderAt: sql<string | null>`(select max(o.created_at) from ${orders} o where o.company_id = "companies"."id")`,
       })
       .from(companies)
       .leftJoin(dono, eq(dono.companyId, companies.id))

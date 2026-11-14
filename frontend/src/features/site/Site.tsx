@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { publicPlanSchema, type PublicPlan } from "@mesaflow/shared";
+import { enviar, erroDaResposta } from "@/lib/http";
 import { Icone } from "@/ui/Icone";
 import { Marca, classeBotao } from "@/ui/componentes";
 import "./site.css";
@@ -115,32 +118,7 @@ export function Site() {
 
         <section className="lp-planos" id="planos">
           <h2>Preço fixo por mês, sem taxa por pedido.</h2>
-          <div className="lp-planos-grade">
-            <article className="plano">
-              <h3>Essencial</h3>
-              <p className="preco num">
-                R$ 49<span style={{ fontSize: "0.5em" }}>,90</span>
-              </p>
-              <ul>
-                <li>Balcão, cozinha e vitrine</li>
-                <li>Cardápio com fotos e adicionais</li>
-                <li>Até 3 pessoas na equipe</li>
-              </ul>
-            </article>
-            <article className="plano plano-destaque">
-              <h3>Completo</h3>
-              <p className="preco num">
-                R$ 99<span style={{ fontSize: "0.5em" }}>,90</span>
-              </p>
-              <ul>
-                <li>Tudo do Essencial</li>
-                <li>Mesas e comandas com divisão da conta</li>
-                <li>Estoque com ficha técnica</li>
-                <li>Equipe sem limite</li>
-              </ul>
-            </article>
-          </div>
-          <p className="lp-nota">Valores provisórios: os preços finais ainda vão ser definidos.</p>
+          <PlanosDoSite />
         </section>
       </div>
 
@@ -159,5 +137,54 @@ export function Site() {
         <Link to="/entrar">Entrar no painel</Link>
       </footer>
     </>
+  );
+}
+
+/** Preço grande com os centavos menores: R$ 99,90. */
+function Preco({ centavos }: { centavos: number }) {
+  const [inteiro, cents] = reais(centavos).split(",");
+  return (
+    <p className="preco num">
+      {inteiro}
+      <span style={{ fontSize: "0.5em" }}>,{cents}</span>
+    </p>
+  );
+}
+
+/** Planos vêm do admin (aba Planos): mudar lá muda aqui. */
+function PlanosDoSite() {
+  const [planos, setPlanos] = useState<PublicPlan[] | null>(null);
+  const [falhou, setFalhou] = useState(false);
+
+  useEffect(() => {
+    enviar(fetch, "/plans")
+      .then(async (res) => {
+        if (!res.ok) throw await erroDaResposta(res);
+        setPlanos(publicPlanSchema.array().parse(await res.json()));
+      })
+      .catch(() => setFalhou(true));
+  }, []);
+
+  if (falhou) return <p className="lp-nota">Não deu para carregar os planos agora. Fale com a gente pelo WhatsApp.</p>;
+  if (!planos) return <p className="lp-nota">Carregando os planos...</p>;
+  if (planos.length === 0) return <p className="lp-nota">Fale com a gente pelo WhatsApp para saber os valores.</p>;
+
+  return (
+    <div className="lp-planos-grade">
+      {planos.map((p) => (
+        <article key={p.id} className={`plano ${p.highlighted ? "plano-destaque" : ""}`}>
+          <h3>{p.name}</h3>
+          <Preco centavos={p.priceCents} />
+          {p.description && <p className="plano-descricao">{p.description}</p>}
+          {p.features.length > 0 && (
+            <ul>
+              {p.features.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          )}
+        </article>
+      ))}
+    </div>
   );
 }
