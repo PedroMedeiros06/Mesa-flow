@@ -20,6 +20,11 @@ export const billingQuerySchema = z.object({ month: monthSchema.optional() });
 /** O nome vem do plano escolhido; o valor pode ser diferente do valor do plano (desconto, preço antigo). */
 export const subscriptionInputSchema = z.object({
   planId: z.uuid("Escolha o plano"),
+  /** Pacotes à parte do restaurante. Quantidade 0 ou fora da lista = sem o pacote. */
+  addons: z
+    .array(z.object({ addonId: z.uuid(), quantity: z.number().int().min(0).max(99, "No máximo 99 pacotes") }))
+    .max(20)
+    .default([]),
   priceCents: z.number({ error: "Informe o valor" }).int().min(1, "Informe o valor").max(10_000_000),
   dueDay: z.number({ error: "Informe o dia" }).int().min(1, "Dia de 1 a 28").max(28, "Dia de 1 a 28"),
 });
@@ -30,6 +35,18 @@ export const subscriptionSchema = z.object({
   plan: z.string(),
   priceCents: z.number().int(),
   dueDay: z.number().int(),
+  addons: z
+    .array(
+      z.object({
+        addonId: z.uuid(),
+        name: z.string(),
+        resource: z.string(),
+        amount: z.number().int(),
+        quantity: z.number().int(),
+        unitPriceCents: z.number().int(),
+      }),
+    )
+    .default([]),
 });
 export type Subscription = z.infer<typeof subscriptionSchema>;
 
@@ -44,6 +61,8 @@ export const invoiceSchema = z.object({
   paidAt: z.string().nullable(),
   paymentMethod: z.string().nullable(),
   note: z.string(),
+  /** Detalhe do valor. Vazio nas faturas geradas antes de existir. */
+  items: z.array(z.object({ description: z.string(), amountCents: z.number().int() })).default([]),
   /** Dias de atraso (pendente com vencimento antes de hoje, em São Paulo). 0 se não está atrasada. */
   daysLate: z.number().int(),
 });

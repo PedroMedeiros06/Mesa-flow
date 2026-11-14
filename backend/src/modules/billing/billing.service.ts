@@ -9,8 +9,8 @@ import type {
   subscriptionInputSchema,
 } from "@mesaflow/shared";
 import type { z } from "zod";
-import { DB, type Database } from "../../db/database.module.js";
-import { companies, invoices, subscriptions } from "../../db/schema.js";
+import { DB, type Database, type Transaction } from "../../db/database.module.js";
+import { addons, companies, invoices, subscriptionAddons, subscriptions } from "../../db/schema.js";
 import { PlansService } from "../plans/plans.service.js";
 import { hojeNoFuso } from "../dashboard/dashboard.service.js";
 
@@ -36,6 +36,7 @@ function paraApi(f: Linha, hoje: string): Invoice {
     paidAt: f.paidAt?.toISOString() ?? null,
     paymentMethod: f.paymentMethod,
     note: f.note,
+    items: f.items,
     daysLate: atraso(f.status, f.dueDate, hoje),
   };
 }
@@ -71,12 +72,20 @@ export class BillingService {
       .from(invoices)
       .where(and(eq(invoices.status, "pending"), lt(invoices.dueDate, hoje)));
 
+    const pacotes = await this.pacotes();
+
     const rows = linhas.map(({ company, subscription, invoice }) => {
       const minhas = atrasadas.filter((a) => a.companyId === company.id);
       return {
         company: { id: company.id, code: company.code, name: company.name, status: company.status },
         subscription: subscription
-          ? { planId: subscription.planId, plan: subscription.plan, priceCents: subscription.priceCents, dueDay: subscription.dueDay }
+          ? {
+              planId: subscription.planId,
+              plan: subscription.plan,
+              priceCents: subscription.priceCents,
+              dueDay: subscription.dueDay,
+              addons: pacotes.get(company.id) ?? [],
+            }
           : null,
         invoice: invoice ? paraApi(invoice, hoje) : null,
         overdue: {
@@ -98,41 +107,99 @@ export class BillingService {
     };
   }
 
+  /** Pacotes à parte de cada restaurante (ou de um só). */
+  private async pacotes(companyId?: string, conn: Database | Transaction = this.conn) {
+    const linhas = await conn
+      .select({
+        companyId: subscriptionAddons.companyId,
+        addonId: addons.id,
+        name: addons.name,
+        resource: addons.resource,
+        amount: addons.amount,
+        quantity: subscriptionAddons.quantity,
+        unitPriceCents: subscriptionAddons.unitPriceCents,
+      })
+      .from(subscriptionAddons)
+      .innerJoin(addons, eq(addons.id, subscriptionAddons.addonId))
+      .where(companyId ? eq(subscriptionAddons.companyId, companyId) : undefined)
+      .orderBy(asc(addons.position), asc(addons.name));
+    const porEmpresa = new Map<string, Subscription["addons"]>();
+    for (const { companyId: id, ...p } of linhas) porEmpresa.set(id, [...(porEmpresa.get(id) ?? []), p]);
+    return porEmpresa;
+  }
+
+  /**
+   * Plano e pacotes à parte do restaurante. Pacote que ele já tinha mantém o valor combinado;
+   * pacote novo entra com o valor atual do catálogo. Quantidade 0 (ou fora da lista) tira o pacote.
+   */
   async setSubscription(companyId: string, dados: z.output<typeof subscriptionInputSchema>): Promise<Subscription> {
     const [existe] = await this.conn.select({ id: companies.id }).from(companies).where(eq(companies.id, companyId));
     if (!existe) throw new NotFoundException({ statusCode: 404, message: "Restaurante não encontrado." });
     const plan = await this.plans.nome(dados.planId);
     const valores = { planId: dados.planId, plan, priceCents: dados.priceCents, dueDay: dados.dueDay };
-    const [s] = await this.conn
-      .insert(subscriptions)
-      .values({ companyId, ...valores })
-      .onConflictDoUpdate({ target: subscriptions.companyId, set: { ...valores, updatedAt: new Date() } })
-      .returning({
-        planId: subscriptions.planId,
-        plan: subscriptions.plan,
-        priceCents: subscriptions.priceCents,
-        dueDay: subscriptions.dueDay,
-      });
-    return s!;
+    const pedidos = dados.addons.filter((a) => a.quantity > 0);
+
+    return this.conn.transaction(async (tx) => {
+      const [s] = await tx
+        .insert(subscriptions)
+        .values({ companyId, ...valores })
+        .onConflictDoUpdate({ target: subscriptions.companyId, set: { ...valores, updatedAt: new Date() } })
+        .returning({
+          planId: subscriptions.planId,
+          plan: subscriptions.plan,
+          priceCents: subscriptions.priceCents,
+          dueDay: subscriptions.dueDay,
+        });
+
+      const catalogo = pedidos.length
+        ? await tx.select().from(addons).where(inArray(addons.id, pedidos.map((a) => a.addonId)))
+        : [];
+      const atuais = await tx.select().from(subscriptionAddons).where(eq(subscriptionAddons.companyId, companyId));
+      await tx.delete(subscriptionAddons).where(eq(subscriptionAddons.companyId, companyId));
+      for (const pedido of pedidos) {
+        const item = catalogo.find((c) => c.id === pedido.addonId);
+        if (!item) throw new NotFoundException({ statusCode: 404, message: "Adicional não encontrado." });
+        const antes = atuais.find((a) => a.addonId === pedido.addonId);
+        await tx.insert(subscriptionAddons).values({
+          companyId,
+          addonId: pedido.addonId,
+          quantity: pedido.quantity,
+          unitPriceCents: antes?.unitPriceCents ?? item.priceCents,
+        });
+      }
+      return { ...s!, addons: (await this.pacotes(companyId, tx)).get(companyId) ?? [] };
+    });
   }
 
   /**
    * Faturas do mês para todo restaurante com plano (inclusive os bloqueados: a dívida continua existindo;
-   * se não fizer sentido, o admin cancela). Quem já tem fatura no mês fica como está.
+   * se não fizer sentido, o admin cancela). Quem já tem fatura no mês fica como está, então um pacote
+   * acrescentado depois de gerar só entra no mês seguinte (ou cancele e gere de novo).
    */
   async generate(month: string): Promise<{ created: number }> {
     const planos = await this.conn.select().from(subscriptions);
     if (!planos.length) return { created: 0 };
+    const pacotes = await this.pacotes();
     const criadas = await this.conn
       .insert(invoices)
       .values(
-        planos.map((p) => ({
-          companyId: p.companyId,
-          reference: `${month}-01`,
-          plan: p.plan,
-          amountCents: p.priceCents,
-          dueDate: `${month}-${String(p.dueDay).padStart(2, "0")}`,
-        })),
+        planos.map((p) => {
+          const items = [
+            { description: `Plano ${p.plan}`, amountCents: p.priceCents },
+            ...(pacotes.get(p.companyId) ?? []).map((a) => ({
+              description: a.quantity === 1 ? a.name : `${a.name} (${a.quantity} pacotes)`,
+              amountCents: a.quantity * a.unitPriceCents,
+            })),
+          ];
+          return {
+            companyId: p.companyId,
+            reference: `${month}-01`,
+            plan: p.plan,
+            amountCents: items.reduce((soma, i) => soma + i.amountCents, 0),
+            dueDate: `${month}-${String(p.dueDay).padStart(2, "0")}`,
+            items,
+          };
+        }),
       )
       .onConflictDoNothing({ target: [invoices.companyId, invoices.reference] })
       .returning({ id: invoices.id });

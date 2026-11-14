@@ -19,7 +19,7 @@ import type {
 import type { z } from "zod";
 import { AuthAdmin } from "../../auth/supabase-admin.client.js";
 import { DB, type Database } from "../../db/database.module.js";
-import { companies, members, orders, subscriptions } from "../../db/schema.js";
+import { companies, members, orders, subscriptionAddons, subscriptions } from "../../db/schema.js";
 
 type CreateData = z.output<typeof adminCompanyCreateSchema>;
 type StatusData = z.output<typeof adminCompanyStatusSchema>;
@@ -66,6 +66,8 @@ export class AdminCompaniesService {
         state: companies.addressState,
         city: companies.addressCity,
         priceCents: subscriptions.priceCents,
+        // Pacotes à parte entram no esperado do mês.
+        addonsCents: sql<number>`(select coalesce(sum(sa.quantity * sa.unit_price_cents), 0)::int from ${subscriptionAddons} sa where sa.company_id = "companies"."id")`,
       })
       .from(companies)
       .leftJoin(subscriptions, eq(subscriptions.companyId, companies.id));
@@ -87,7 +89,7 @@ export class AdminCompaniesService {
     return {
       activeCount: ativos.length,
       blockedCount: linhas.length - ativos.length,
-      expectedMonthlyCents: ativos.reduce((s, l) => s + (l.priceCents ?? 0), 0),
+      expectedMonthlyCents: ativos.reduce((s, l) => s + (l.priceCents ?? 0) + l.addonsCents, 0),
       activeWithoutPlan: ativos.filter((l) => l.priceCents === null).length,
       byState: [...porEstado].map(([state, n]) => ({ state, companies: n })).sort((a, b) => ordenar(a, b) || a.state.localeCompare(b.state)),
       byCity: [...porCidade.values()].sort((a, b) => ordenar(a, b) || a.city.localeCompare(b.city, "pt-BR")),

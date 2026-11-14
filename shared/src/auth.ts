@@ -56,6 +56,9 @@ export const memberProfileSchema = z.object({
     name: z.string(),
     // Taxa de serviço padrão (pontos-base). O default cobre sessões salvas antes deste campo existir.
     serviceFeeBps: z.number().int().default(1000),
+    // Recursos do plano. O default (tudo liberado) cobre sessões salvas antes deste campo existir;
+    // quem decide de verdade é o servidor.
+    modules: z.object({ tabs: z.boolean(), stock: z.boolean(), storefront: z.boolean() }).default({ tabs: true, stock: true, storefront: true }),
   }),
 });
 export type MemberProfile = z.infer<typeof memberProfileSchema>;

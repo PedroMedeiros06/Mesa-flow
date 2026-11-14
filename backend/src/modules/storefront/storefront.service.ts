@@ -6,6 +6,7 @@ import { DB, type Database } from "../../db/database.module.js";
 import { companies } from "../../db/schema.js";
 import type { Falta } from "../stock/stock.service.js";
 import { OrdersService } from "../orders/orders.service.js";
+import { PlanLimitsService } from "../plan-limits/plan-limits.service.js";
 
 type PedidoVitrine = z.output<typeof storefrontOrderInputSchema>;
 
@@ -18,6 +19,7 @@ export class StorefrontService {
   constructor(
     @Inject(DB) private readonly db: Database | null,
     private readonly orders: OrdersService,
+    private readonly limites: PlanLimitsService,
   ) {}
 
   private get conn(): Database {
@@ -31,7 +33,8 @@ export class StorefrontService {
       .select({ id: companies.id, code: companies.code, name: companies.name, whatsapp: companies.whatsapp })
       .from(companies)
       .where(and(eq(companies.code, code), eq(companies.status, "active")));
-    if (!loja) throw indisponivel();
+    // Plano sem cardápio online: a vitrine fica fora do ar, com a mesma resposta de restaurante bloqueado.
+    if (!loja || !(await this.limites.moduloLigado(loja.id, "storefront"))) throw indisponivel();
     return loja;
   }
 

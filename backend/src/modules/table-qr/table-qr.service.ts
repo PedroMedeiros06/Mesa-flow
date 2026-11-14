@@ -5,6 +5,7 @@ import { WAITER_CALL_COOLDOWN_MS, type PublicTab, type TableCode, type WaiterCal
 import { DB, type Database } from "../../db/database.module.js";
 import { companies, tableCodes, tabEvents, tabs, waiterCalls } from "../../db/schema.js";
 import { TabsService } from "../tabs/tabs.service.js";
+import { PlanLimitsService } from "../plan-limits/plan-limits.service.js";
 
 /** 16 bytes aleatórios (128 bits): não dá para adivinhar o QR de outra mesa trocando um número. */
 const novoToken = () => randomBytes(16).toString("base64url");
@@ -24,6 +25,7 @@ export class TableQrService {
   constructor(
     @Inject(DB) private readonly db: Database | null,
     private readonly tabs: TabsService,
+    private readonly limites: PlanLimitsService,
   ) {}
 
   private get conn(): Database {
@@ -35,6 +37,7 @@ export class TableQrService {
 
   /** QR das mesas do intervalo; as que ainda não têm ganham um agora. */
   async codes(companyId: string, from: number, to: number): Promise<TableCode[]> {
+    await this.limites.exigirMesa(companyId, to);
     const numeros = Array.from({ length: to - from + 1 }, (_, i) => from + i);
     await this.conn
       .insert(tableCodes)
@@ -49,6 +52,7 @@ export class TableQrService {
 
   /** Troca o QR de uma mesa: o adesivo antigo para de funcionar. */
   async regenerate(companyId: string, tableNumber: number): Promise<TableCode> {
+    await this.limites.exigirMesa(companyId, tableNumber);
     const [c] = await this.conn
       .insert(tableCodes)
       .values({ companyId, tableNumber, token: novoToken() })
@@ -87,7 +91,8 @@ export class TableQrService {
       .from(tableCodes)
       .innerJoin(companies, eq(companies.id, tableCodes.companyId))
       .where(and(eq(tableCodes.token, token), eq(companies.status, "active")));
-    if (!m) throw qrInvalido();
+    // Plano sem mesas: o QR para de funcionar como se não existisse.
+    if (!m || !(await this.limites.moduloLigado(m.companyId, "tabs"))) throw qrInvalido();
     return m;
   }
 

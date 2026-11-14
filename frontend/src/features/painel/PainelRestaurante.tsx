@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
-import { can, type Permission } from "@mesaflow/shared";
+import { can, type Permission, type PlanModule } from "@mesaflow/shared";
 import { primeiroNome, saudacao } from "@/lib/formato";
 import { ApiErro } from "@/lib/http";
 import { sessao } from "@/lib/sessao";
@@ -10,7 +10,7 @@ import { ResumoDia } from "../inicio/ResumoDia";
 import { AlertaChamados } from "../mesas/AlertaChamados";
 import { AvisoMensalidade } from "./AvisoMensalidade";
 import { Casca } from "./Casca";
-import { MENU_PAINEL, menuVisivel, podeVer } from "./menu";
+import { MENU_PAINEL, menuVisivel, podeVer, temModulo } from "./menu";
 
 /** /app: só entra quem tem sessão de restaurante. O perfil é relido do servidor ao abrir. */
 export function PainelRestaurante() {
@@ -52,9 +52,27 @@ export function PainelRestaurante() {
 }
 
 /** Mostra a tela só para quem tem a permissão; o backend confere de novo em cada chamada. */
-export function RequerPermissao({ permissao, children }: { permissao?: Permission; children: ReactNode }) {
+export function RequerPermissao({
+  permissao,
+  modulo,
+  children,
+}: {
+  permissao?: Permission;
+  modulo?: PlanModule;
+  children: ReactNode;
+}) {
   const atual = useSessao("membro");
   if (!atual) return null;
+  if (!temModulo(atual.profile, modulo)) {
+    return (
+      <div className="vazio">
+        <h1 style={{ fontSize: "var(--t-3xl)", fontWeight: 800 }}>Fora do seu plano</h1>
+        <p className="suave">
+          O plano do restaurante não inclui esta parte do sistema. Fale com a MesaFlow para liberar.
+        </p>
+      </div>
+    );
+  }
   const item = { ...MENU_PAINEL[0]!, permissao };
   if (!podeVer(atual.profile, item)) {
     return (
@@ -108,13 +126,15 @@ export function InicioRestaurante() {
           <CorteComanda />
           <p>Código do restaurante. Sua equipe usa este código, o CPF e a senha para entrar.</p>
         </Comanda>
-        <Comanda>
-          <strong>Cardápio online</strong>
-          <p className="suave" style={{ margin: "6px 0 12px" }}>
-            Mande este link aos clientes ou ponha num QR code na mesa. Os pedidos chegam na Cozinha.
-          </p>
-          <LinkVitrine codigo={company.code} />
-        </Comanda>
+        {company.modules.storefront && (
+          <Comanda>
+            <strong>Cardápio online</strong>
+            <p className="suave" style={{ margin: "6px 0 12px" }}>
+              Mande este link aos clientes ou ponha num QR code na mesa. Os pedidos chegam na Cozinha.
+            </p>
+            <LinkVitrine codigo={company.code} />
+          </Comanda>
+        )}
       </div>
     </>
   );

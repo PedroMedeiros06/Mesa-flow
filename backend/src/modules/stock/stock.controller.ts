@@ -10,11 +10,13 @@ import { CurrentMember, RequirePermission } from "../../auth/auth-context.js";
 import { MemberGuard } from "../../auth/guards.js";
 import { ZodValidationPipe } from "../../common/zod-validation.pipe.js";
 import { StockService } from "./stock.service.js";
+import { ModuloGuard, RequireModule } from "../plan-limits/modulo.guard.js";
 
 const uuid = new ParseUUIDPipe({ version: "4" });
 
 @Controller("stock/ingredients")
-@UseGuards(MemberGuard)
+@UseGuards(MemberGuard, ModuloGuard)
+@RequireModule("stock")
 export class StockController {
   constructor(private readonly stock: StockService) {}
 

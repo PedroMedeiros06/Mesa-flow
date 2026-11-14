@@ -54,7 +54,7 @@ const TELAS: Record<string, React.ReactNode> = {
 const telasRestaurante: RouteObject[] = MENU_PAINEL.filter((item) => item.caminho !== "/app").map((item) => ({
   path: item.caminho.replace("/app/", ""),
   element: (
-    <RequerPermissao permissao={item.permissao}>
+    <RequerPermissao permissao={item.permissao} modulo={item.modulo}>
       {TELAS[item.id] ?? <EmBreve titulo={item.nome} etapa={item.etapa} />}
     </RequerPermissao>
   ),

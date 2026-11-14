@@ -71,6 +71,13 @@
       "when": 1794614816296,
       "tag": "0009_catalogo_de_planos",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794616256587,
+      "tag": "0010_limites_e_adicionais",
+      "breakpoints": true
     }
   ]
 }

@@ -27,6 +27,7 @@ import {
   products,
 } from "../../db/schema.js";
 import { detectImageType, StorageClient } from "../../storage/storage.client.js";
+import { PlanLimitsService } from "../plan-limits/plan-limits.service.js";
 
 type CategoryData = z.output<typeof categoryInputSchema>;
 type ProductData = z.output<typeof productInputSchema>;
@@ -48,6 +49,7 @@ export class CatalogService {
   constructor(
     @Inject(DB) private readonly db: Database | null,
     private readonly storage: StorageClient,
+    private readonly limites: PlanLimitsService,
   ) {}
 
   private get conn(): Database {
@@ -215,6 +217,7 @@ export class CatalogService {
 
   async createProduct(companyId: string, data: ProductData): Promise<Product> {
     return this.conn.transaction(async (tx) => {
+      await this.limites.exigirVaga(companyId, "products", tx);
       await this.exigirCategoria(tx, companyId, data.categoryId);
       const [prod] = await tx
         .insert(products)

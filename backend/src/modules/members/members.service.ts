@@ -22,6 +22,7 @@ import type { z } from "zod";
 import { AuthAdmin } from "../../auth/supabase-admin.client.js";
 import { DB, type Database } from "../../db/database.module.js";
 import { members } from "../../db/schema.js";
+import { PlanLimitsService } from "../plan-limits/plan-limits.service.js";
 
 type CreateData = z.output<typeof memberCreateSchema>;
 type UpdateData = z.output<typeof memberUpdateSchema>;
@@ -32,7 +33,8 @@ function pgCode(erro: unknown): string | undefined {
 }
 
 const naoEncontrado = () => new NotFoundException({ statusCode: 404, message: "Pessoa não encontrada." });
-const cpfRepetido = () => new ConflictException({ statusCode: 409, message: "Já existe alguém da equipe com este CPF." });
+const cpfRepetido = () =>
+  new ConflictException({ statusCode: 409, message: "Já existe alguém da equipe com este CPF." });
 
 type Linha = typeof members.$inferSelect;
 const paraApi = (m: Linha): Member => ({
@@ -56,6 +58,7 @@ export class MembersService {
   constructor(
     @Inject(DB) private readonly db: Database | null,
     private readonly authAdmin: AuthAdmin,
+    private readonly limites: PlanLimitsService,
   ) {}
 
   private get conn(): Database {
@@ -82,22 +85,28 @@ export class MembersService {
       .from(members)
       .where(and(eq(members.companyId, companyId), eq(members.cpf, dados.cpf)));
     if (repetido) throw cpfRepetido();
+    // Antes de criar o login: se não cabe no plano, não sobra usuário no Auth.
+    await this.limites.exigirVaga(companyId, "members");
 
     const authUserId = await this.authAdmin.createUser(dados.email, dados.name);
     let linha: Linha;
     try {
-      [linha] = (await this.conn
-        .insert(members)
-        .values({
-          companyId,
-          authUserId,
-          name: dados.name,
-          cpf: dados.cpf,
-          email: dados.email,
-          role: "employee",
-          permissions: dados.permissions,
-        })
-        .returning()) as [Linha];
+      [linha] = (await this.conn.transaction(async (tx) => {
+        // De novo, travando o restaurante: dois cadastros ao mesmo tempo não passam juntos do limite.
+        await this.limites.exigirVaga(companyId, "members", tx);
+        return tx
+          .insert(members)
+          .values({
+            companyId,
+            authUserId,
+            name: dados.name,
+            cpf: dados.cpf,
+            email: dados.email,
+            role: "employee",
+            permissions: dados.permissions,
+          })
+          .returning();
+      })) as [Linha];
     } catch (erro) {
       await this.authAdmin.deleteUser(authUserId);
       if (pgCode(erro) === "23505") throw cpfRepetido();
@@ -154,7 +163,8 @@ export class MembersService {
     }
     // Quem tem menos permissões não mexe em quem tem mais: senão geraria o link de senha
     // dessa pessoa e entraria no lugar dela.
-    if (!eu) this.podeMexerNas(ator, alvo.permissions.filter(isPermission), "Esta pessoa tem permissões que você não tem.");
+    if (!eu)
+      this.podeMexerNas(ator, alvo.permissions.filter(isPermission), "Esta pessoa tem permissões que você não tem.");
     return alvo;
   }
 

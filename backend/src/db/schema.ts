@@ -607,11 +607,20 @@ export const plans = app
       highlighted: boolean("highlighted").notNull().default(false),
       active: boolean("active").notNull().default(true),
       position: integer("position").notNull().default(0),
+      // Limites (null = sem limite). Mesas = número da mesa mais alto que dá para usar.
+      maxTables: integer("max_tables"),
+      maxMembers: integer("max_members"),
+      maxProducts: integer("max_products"),
+      // Recursos que o plano libera.
+      featureTabs: boolean("feature_tabs").notNull().default(true),
+      featureStock: boolean("feature_stock").notNull().default(true),
+      featureStorefront: boolean("feature_storefront").notNull().default(true),
       ...timestamps,
     },
     (t) => [
       uniqueIndex("plans_name").on(sql`lower(${t.name})`),
       check("plans_price", sql`${t.priceCents} > 0`),
+      check("plans_limits", sql`coalesce(${t.maxTables}, 1) between 1 and 999 and coalesce(${t.maxMembers}, 1) >= 1 and coalesce(${t.maxProducts}, 1) >= 1`),
     ],
   )
   .enableRLS();
@@ -641,6 +650,54 @@ export const subscriptions = app
   )
   .enableRLS();
 
+// Produtos à parte: pacotes que aumentam um limite do plano (ex.: +10 mesas por R$ 30/mês).
+export const addons = app
+  .table(
+    "addons",
+    {
+      id: uuid("id").primaryKey().defaultRandom(),
+      name: text("name").notNull(),
+      // O que o pacote aumenta: tables, members ou products.
+      resource: text("resource").notNull(),
+      // Quanto cada pacote aumenta.
+      amount: integer("amount").notNull(),
+      priceCents: integer("price_cents").notNull(),
+      active: boolean("active").notNull().default(true),
+      position: integer("position").notNull().default(0),
+      ...timestamps,
+    },
+    (t) => [
+      uniqueIndex("addons_name").on(sql`lower(${t.name})`),
+      check("addons_resource", sql`${t.resource} in ('tables', 'members', 'products')`),
+      check("addons_amount", sql`${t.amount} > 0`),
+      check("addons_price", sql`${t.priceCents} > 0`),
+    ],
+  )
+  .enableRLS();
+
+// Pacotes que cada restaurante tem. O valor fica guardado aqui, como o do plano.
+export const subscriptionAddons = app
+  .table(
+    "subscription_addons",
+    {
+      companyId: uuid("company_id")
+        .notNull()
+        .references(() => subscriptions.companyId, { onDelete: "cascade" }),
+      addonId: uuid("addon_id")
+        .notNull()
+        .references(() => addons.id, { onDelete: "restrict" }),
+      quantity: integer("quantity").notNull(),
+      unitPriceCents: integer("unit_price_cents").notNull(),
+      ...timestamps,
+    },
+    (t) => [
+      primaryKey({ name: "subscription_addons_pk", columns: [t.companyId, t.addonId] }),
+      check("subscription_addons_quantity", sql`${t.quantity} between 1 and 99`),
+      check("subscription_addons_price", sql`${t.unitPriceCents} > 0`),
+    ],
+  )
+  .enableRLS();
+
 // Fatura do mês. Nunca é apagada: cancelar e desfazer só mudam o status.
 export const invoices = app
   .table(
@@ -659,6 +716,8 @@ export const invoices = app
       paidAt: timestamp("paid_at", { withTimezone: true }),
       paymentMethod: text("payment_method"),
       note: text("note").notNull().default(""),
+      // Detalhe do valor (plano e cada adicional). Faturas antigas ficam com a lista vazia.
+      items: jsonb("items").$type<{ description: string; amountCents: number }[]>().notNull().default(sql`'[]'::jsonb`),
       changedBy: uuid("changed_by").references(() => platformAdmins.id, { onDelete: "set null" }),
       ...timestamps,
     },

@@ -1,9 +1,18 @@
 import { ConflictException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { and, asc, eq, ne, sql } from "drizzle-orm";
-import type { AdminPlan, PlanSaved, planInputSchema, PublicPlan } from "@mesaflow/shared";
+import type {
+  AdminPlan,
+  AdminPlanAddon,
+  planAddonInputSchema,
+  PlanResource,
+  PlanSaved,
+  planInputSchema,
+  PublicPlan,
+  PublicPlanAddon,
+} from "@mesaflow/shared";
 import type { z } from "zod";
 import { DB, type Database } from "../../db/database.module.js";
-import { plans, subscriptions } from "../../db/schema.js";
+import { addons, plans, subscriptionAddons, subscriptions } from "../../db/schema.js";
 
 type Entrada = z.output<typeof planInputSchema>;
 
@@ -22,6 +31,18 @@ const publico = (p: typeof plans.$inferSelect): PublicPlan => ({
   description: p.description,
   features: p.features,
   highlighted: p.highlighted,
+  limits: { tables: p.maxTables, members: p.maxMembers, products: p.maxProducts },
+  modules: { tabs: p.featureTabs, stock: p.featureStock, storefront: p.featureStorefront },
+});
+
+/** Campos de limite e recurso da entrada para as colunas. */
+const colunasLimites = (d: Entrada) => ({
+  maxTables: d.limits.tables,
+  maxMembers: d.limits.members,
+  maxProducts: d.limits.products,
+  featureTabs: d.modules.tabs,
+  featureStock: d.modules.stock,
+  featureStorefront: d.modules.storefront,
 });
 
 /**
@@ -83,6 +104,7 @@ export class PlansService {
             highlighted: dados.highlighted,
             active: dados.active,
             position: ultimo + 1,
+            ...colunasLimites(dados),
           })
           .returning({ id: plans.id });
         // Um destaque só no site.
@@ -113,6 +135,7 @@ export class PlansService {
             features: dados.features,
             highlighted: dados.highlighted,
             active: dados.active,
+            ...colunasLimites(dados),
             updatedAt: new Date(),
           })
           .where(eq(plans.id, id))
@@ -148,5 +171,82 @@ export class PlansService {
     const [p] = await this.conn.select({ name: plans.name }).from(plans).where(eq(plans.id, id));
     if (!p) throw new NotFoundException({ statusCode: 404, message: "Plano não encontrado." });
     return p.name;
+  }
+
+  // ---------- produtos à parte (adicionais) ----------
+
+  private addonPublico(a: typeof addons.$inferSelect): PublicPlanAddon {
+    return { id: a.id, name: a.name, resource: a.resource as PlanResource, amount: a.amount, priceCents: a.priceCents };
+  }
+
+  async publicAddons(): Promise<PublicPlanAddon[]> {
+    const linhas = await this.conn.select().from(addons).where(eq(addons.active, true)).orderBy(asc(addons.position), asc(addons.name));
+    return linhas.map((a) => this.addonPublico(a));
+  }
+
+  async adminAddons(): Promise<AdminPlanAddon[]> {
+    const linhas = await this.conn
+      .select({
+        addon: addons,
+        // Coluna do adicional citada com a tabela (sem join, o drizzle escreveria só "price_cents").
+        subscribers: sql<number>`(select count(*)::int from ${subscriptionAddons} s where s.addon_id = "addons"."id")`,
+        outroValor: sql<number>`(select count(*)::int from ${subscriptionAddons} s where s.addon_id = "addons"."id" and s.unit_price_cents <> "addons"."price_cents")`,
+      })
+      .from(addons)
+      .orderBy(asc(addons.position), asc(addons.name));
+    return linhas.map(({ addon, subscribers, outroValor }) => ({
+      ...this.addonPublico(addon),
+      active: addon.active,
+      position: addon.position,
+      subscribers,
+      subscribersWithOtherPrice: outroValor,
+    }));
+  }
+
+  private async umAddon(id: string): Promise<AdminPlanAddon> {
+    const a = (await this.adminAddons()).find((x) => x.id === id);
+    if (!a) throw new NotFoundException({ statusCode: 404, message: "Adicional não encontrado." });
+    return a;
+  }
+
+  async createAddon(dados: z.output<typeof planAddonInputSchema>): Promise<{ addon: AdminPlanAddon; updatedSubscriptions: number }> {
+    try {
+      const [{ ultimo }] = (await this.conn.select({ ultimo: sql<number>`coalesce(max(${addons.position}), 0)::int` }).from(addons)) as [
+        { ultimo: number },
+      ];
+      const [a] = await this.conn
+        .insert(addons)
+        .values({ name: dados.name, resource: dados.resource, amount: dados.amount, priceCents: dados.priceCents, active: dados.active, position: ultimo + 1 })
+        .returning({ id: addons.id });
+      return { addon: await this.umAddon(a!.id), updatedSubscriptions: 0 };
+    } catch (erro) {
+      if (restricao(erro) === "addons_name") throw new ConflictException({ statusCode: 409, message: "Já existe um adicional com este nome." });
+      throw erro;
+    }
+  }
+
+  /** Como nos planos: o valor novo só vai para quem já tem o pacote se applyPriceToSubscribers vier true. */
+  async updateAddon(id: string, dados: z.output<typeof planAddonInputSchema>): Promise<{ addon: AdminPlanAddon; updatedSubscriptions: number }> {
+    try {
+      const n = await this.conn.transaction(async (tx) => {
+        const [a] = await tx
+          .update(addons)
+          .set({ name: dados.name, resource: dados.resource, amount: dados.amount, priceCents: dados.priceCents, active: dados.active, updatedAt: new Date() })
+          .where(eq(addons.id, id))
+          .returning({ id: addons.id });
+        if (!a) throw new NotFoundException({ statusCode: 404, message: "Adicional não encontrado." });
+        if (!dados.applyPriceToSubscribers) return 0;
+        const mudadas = await tx
+          .update(subscriptionAddons)
+          .set({ unitPriceCents: dados.priceCents, updatedAt: new Date() })
+          .where(and(eq(subscriptionAddons.addonId, id), ne(subscriptionAddons.unitPriceCents, dados.priceCents)))
+          .returning({ id: subscriptionAddons.companyId });
+        return mudadas.length;
+      });
+      return { addon: await this.umAddon(id), updatedSubscriptions: n };
+    } catch (erro) {
+      if (restricao(erro) === "addons_name") throw new ConflictException({ statusCode: 409, message: "Já existe um adicional com este nome." });
+      throw erro;
+    }
   }
 }

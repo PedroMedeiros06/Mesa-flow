@@ -19,7 +19,7 @@ function sessaoMembro(token = "a1", expiresAt = AGORA + 3600): MemberSession {
         role: "owner",
         permissions: [],
       },
-      company: { id: "22222222-2222-4222-8222-222222222222", code: "482915", name: "Cantina da Vila", serviceFeeBps: 1000 },
+      company: { id: "22222222-2222-4222-8222-222222222222", code: "482915", name: "Cantina da Vila", serviceFeeBps: 1000, modules: { tabs: true, stock: true, storefront: true } },
     },
   };
 }

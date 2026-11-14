@@ -26,7 +26,8 @@ import "./pedidos.css";
 export function Balcao() {
   const atual = useSessao("membro");
   const podeDesconto = !!atual && can(atual.profile.member.role, atual.profile.member.permissions, "orders.discount");
-  const podeMesa = !!atual && can(atual.profile.member.role, atual.profile.member.permissions, "tabs.open");
+  const podeMesa =
+    !!atual && atual.profile.company.modules.tabs && can(atual.profile.member.role, atual.profile.member.permissions, "tabs.open");
 
   // Destino do pedido: pago aqui no balcão ou lançado na conta de uma mesa (paga ao fechar a mesa).
   const [destino, setDestino] = useState<"balcao" | "mesa">("balcao");

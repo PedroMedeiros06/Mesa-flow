@@ -14,6 +14,7 @@ import { CurrentMember, RequirePermission } from "../../auth/auth-context.js";
 import { MemberGuard } from "../../auth/guards.js";
 import { ZodValidationPipe } from "../../common/zod-validation.pipe.js";
 import { TabsService } from "./tabs.service.js";
+import { ModuloGuard, RequireModule } from "../plan-limits/modulo.guard.js";
 
 const uuid = new ParseUUIDPipe({ version: "4" });
 const mesa = new ZodValidationPipe(z.coerce.number().int().min(1, "Mesa de 1 a 999").max(999, "Mesa de 1 a 999"));
@@ -21,7 +22,8 @@ const filtro = z.object({ scope: z.enum(["abertas", "hoje"]).default("abertas") 
 const corpo = <S extends z.ZodType>(s: S) => new ZodValidationPipe(s);
 
 @Controller("tabs")
-@UseGuards(MemberGuard)
+@UseGuards(MemberGuard, ModuloGuard)
+@RequireModule("tabs")
 export class TabsController {
   constructor(private readonly tabs: TabsService) {}
 

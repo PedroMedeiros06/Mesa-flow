@@ -35,8 +35,8 @@ type Pessoa = {
   identity: MemberIdentity;
 };
 
-const empresaA = { id: "11111111-1111-4111-8111-111111111111", code: "100001", name: "Cantina A", serviceFeeBps: 1000 };
-const empresaB = { id: "22222222-2222-4222-8222-222222222222", code: "200002", name: "Bistrô B", serviceFeeBps: 1000 };
+const empresaA = { id: "11111111-1111-4111-8111-111111111111", code: "100001", name: "Cantina A", serviceFeeBps: 1000, modules: { tabs: true, stock: true, storefront: true } };
+const empresaB = { id: "22222222-2222-4222-8222-222222222222", code: "200002", name: "Bistrô B", serviceFeeBps: 1000, modules: { tabs: true, stock: true, storefront: true } };
 
 function pessoa(
   id: string,

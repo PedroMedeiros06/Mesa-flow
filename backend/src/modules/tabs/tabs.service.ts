@@ -24,6 +24,7 @@ import { DB, type Database, type Transaction } from "../../db/database.module.js
 import { companies, members, orderItems, orders, tabEvents, tabPayments, tabs, waiterCalls } from "../../db/schema.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { StockService } from "../stock/stock.service.js";
+import { PlanLimitsService } from "../plan-limits/plan-limits.service.js";
 
 type AbrirData = z.output<typeof tabOpenSchema>;
 type RodadaData = z.output<typeof tabRoundInputSchema>;
@@ -53,6 +54,7 @@ export class TabsService {
     @Inject(DB) private readonly db: Database | null,
     private readonly orders: OrdersService,
     private readonly stock: StockService,
+    private readonly limites: PlanLimitsService,
   ) {}
 
   private get conn(): Database {
@@ -238,6 +240,7 @@ export class TabsService {
   }
 
   async open(companyId: string, memberId: string, data: AbrirData): Promise<TabDetail> {
+    await this.limites.exigirMesa(companyId, data.tableNumber);
     const label = data.label || `Mesa ${data.tableNumber}`;
     try {
       const id = await this.conn.transaction(async (tx) => {
@@ -292,6 +295,7 @@ export class TabsService {
    * abre na mesma transação do pedido: se faltar estoque, nem a comanda nem o pedido ficam gravados.
    */
   async roundForTable(companyId: string, memberId: string, tableNumber: number, data: RodadaData): Promise<TabDetail> {
+    await this.limites.exigirMesa(companyId, tableNumber);
     const aberta = async () =>
       (
         await this.conn

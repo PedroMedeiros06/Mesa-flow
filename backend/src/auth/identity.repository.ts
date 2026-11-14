@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 import { isPermission, type AdminProfile, type MemberProfile } from "@mesaflow/shared";
 import { DB, type Database } from "../db/database.module.js";
-import { companies, members, platformAdmins } from "../db/schema.js";
+import { companies, members, plans, platformAdmins, subscriptions } from "../db/schema.js";
 
 export interface MemberIdentity {
   profile: MemberProfile;
@@ -43,13 +43,23 @@ export class DrizzleIdentityRepository extends IdentityRepository {
 
   async findMemberByAuthUser(authUserId: string): Promise<MemberIdentity | null> {
     const [row] = await this.conn
-      .select({ member: members, company: companies })
+      .select({
+        member: members,
+        company: companies,
+        // Recursos do plano (sem plano do catálogo = tudo liberado). Relido a cada requisição, como o resto.
+        tabs: plans.featureTabs,
+        stock: plans.featureStock,
+        storefront: plans.featureStorefront,
+      })
       .from(members)
       .innerJoin(companies, eq(companies.id, members.companyId))
+      .leftJoin(subscriptions, eq(subscriptions.companyId, companies.id))
+      .leftJoin(plans, eq(plans.id, subscriptions.planId))
       .where(eq(members.authUserId, authUserId))
       .limit(1);
     if (!row) return null;
     const { member, company } = row;
+    const modules = { tabs: row.tabs ?? true, stock: row.stock ?? true, storefront: row.storefront ?? true };
     return {
       profile: {
         kind: "member",
@@ -61,7 +71,7 @@ export class DrizzleIdentityRepository extends IdentityRepository {
           // Chaves desconhecidas no banco são ignoradas, nunca viram acesso.
           permissions: member.permissions.filter(isPermission),
         },
-        company: { id: company.id, code: company.code, name: company.name, serviceFeeBps: company.serviceFeeBps },
+        company: { id: company.id, code: company.code, name: company.name, serviceFeeBps: company.serviceFeeBps, modules },
       },
       memberActive: member.status === "active",
       companyActive: company.status === "active",
