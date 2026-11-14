@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { publicPlanSchema, type PublicPlan } from "@mesaflow/shared";
+import {
+  PLAN_RESOURCES,
+  publicPlanAddonSchema,
+  publicPlanSchema,
+  type PublicPlan,
+  type PublicPlanAddon,
+} from "@mesaflow/shared";
 import { enviar, erroDaResposta } from "@/lib/http";
+import { textoLimite, textoPacote } from "@/lib/plano";
 import { Icone } from "@/ui/Icone";
 import { Marca, classeBotao } from "@/ui/componentes";
 import "./site.css";
 
-const reais = (centavos: number) =>
-  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const reais = (centavos: number) => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const AREAS = [
   {
     nome: "Salão",
-    texto: "O garçom abre a mesa no celular, lança cada rodada e vê quanto já foi pago. A conta divide por pessoa ou por valor.",
+    texto:
+      "O garçom abre a mesa no celular, lança cada rodada e vê quanto já foi pago. A conta divide por pessoa ou por valor.",
     onde: "no celular do garçom",
   },
   {
@@ -51,8 +58,8 @@ export function Site() {
           <div>
             <h1>Do salão à cozinha, cada pedido no lugar certo.</h1>
             <p className="lead">
-              Mesas, balcão, cozinha e cardápio online no mesmo sistema. Feito para o restaurante que não pode
-              parar no sábado à noite.
+              Mesas, balcão, cozinha e cardápio online no mesmo sistema. Feito para o restaurante que não pode parar no
+              sábado à noite.
             </p>
             <div className="lp-acoes">
               <a className="btn btn-primario" href="#contato">
@@ -154,6 +161,7 @@ function Preco({ centavos }: { centavos: number }) {
 /** Planos vêm do admin (aba Planos): mudar lá muda aqui. */
 function PlanosDoSite() {
   const [planos, setPlanos] = useState<PublicPlan[] | null>(null);
+  const [adicionais, setAdicionais] = useState<PublicPlanAddon[]>([]);
   const [falhou, setFalhou] = useState(false);
 
   useEffect(() => {
@@ -163,6 +171,10 @@ function PlanosDoSite() {
         setPlanos(publicPlanSchema.array().parse(await res.json()));
       })
       .catch(() => setFalhou(true));
+    // Os adicionais são um extra: se falharem, os planos aparecem do mesmo jeito.
+    enviar(fetch, "/plans/addons")
+      .then(async (res) => (res.ok ? setAdicionais(publicPlanAddonSchema.array().parse(await res.json())) : undefined))
+      .catch(() => undefined);
   }, []);
 
   if (falhou) return <p className="lp-nota">Não deu para carregar os planos agora. Fale com a gente pelo WhatsApp.</p>;
@@ -170,21 +182,40 @@ function PlanosDoSite() {
   if (planos.length === 0) return <p className="lp-nota">Fale com a gente pelo WhatsApp para saber os valores.</p>;
 
   return (
-    <div className="lp-planos-grade">
-      {planos.map((p) => (
-        <article key={p.id} className={`plano ${p.highlighted ? "plano-destaque" : ""}`}>
-          <h3>{p.name}</h3>
-          <Preco centavos={p.priceCents} />
-          {p.description && <p className="plano-descricao">{p.description}</p>}
-          {p.features.length > 0 && (
+    <>
+      <div className="lp-planos-grade">
+        {planos.map((p) => (
+          <article key={p.id} className={`plano ${p.highlighted ? "plano-destaque" : ""}`}>
+            <h3>{p.name}</h3>
+            <Preco centavos={p.priceCents} />
+            {p.description && <p className="plano-descricao">{p.description}</p>}
             <ul>
+              {/* Limites saem do cadastro do plano; os itens de texto vêm depois. */}
+              {PLAN_RESOURCES.map((r) => (
+                <li key={r} className="plano-limite">
+                  {textoLimite(r, p.limits[r])}
+                </li>
+              ))}
               {p.features.map((f) => (
                 <li key={f}>{f}</li>
               ))}
             </ul>
-          )}
-        </article>
-      ))}
-    </div>
+          </article>
+        ))}
+      </div>
+      {adicionais.length > 0 && (
+        <div className="lp-adicionais">
+          <h3>Precisa de mais?</h3>
+          <ul>
+            {adicionais.map((a) => (
+              <li key={a.id}>
+                <strong>{textoPacote(a.resource, a.amount)}</strong> por{" "}
+                <span className="num">{reais(a.priceCents)}</span>/mês
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
   );
 }

@@ -32,3 +32,23 @@
 .ajustes-salvo {
   font-weight: 700;
 }
+
+/* Seu plano */
+.seu-plano {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.seu-plano li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px dashed var(--linha);
+}
+.seu-plano-fora {
+  color: var(--brasa-texto);
+  font-weight: 700;
+}

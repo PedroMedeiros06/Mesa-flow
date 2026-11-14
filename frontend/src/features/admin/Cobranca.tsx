@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
+  adminPlanAddonSchema,
   adminPlanSchema,
   BILLING_METHOD_LABELS,
   BILLING_METHODS,
@@ -8,12 +9,14 @@ import {
   generateInvoicesResultSchema,
   parseMoney,
   type AdminPlan,
+  type AdminPlanAddon,
   type BillingMethod,
   type BillingMonth,
   type BillingRow,
   type Invoice,
 } from "@mesaflow/shared";
 import { ApiErro } from "@/lib/http";
+import { textoPacote } from "@/lib/plano";
 import { sessao } from "@/lib/sessao";
 import { Aviso, Botao, Campo, Comanda, Dialogo, Etiqueta } from "@/ui/componentes";
 import "./admin.css";
@@ -29,7 +32,8 @@ const mensagem = (falha: unknown, padrao: string) => (falha instanceof ApiErro ?
 const reais = (c: number) => formatMoney(c).replace(/^R\$\s?/, "");
 
 /** Mês atual (AAAA-MM) no fuso de São Paulo. */
-const mesAtual = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()).slice(0, 7);
+const mesAtual = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()).slice(0, 7);
 const somarMes = (m: string, n: number) => {
   const [a, b] = m.split("-").map(Number) as [number, number];
   const d = new Date(Date.UTC(a, b - 1 + n, 1));
@@ -37,7 +41,12 @@ const somarMes = (m: string, n: number) => {
 };
 const nomeMes = (m: string) =>
   new Date(`${m}-01T12:00:00Z`).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
-const dataCurta = (d: string) => new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+const dataCurta = (d: string) =>
+  new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "UTC",
+  });
 
 function Situacao({ f }: { f: Invoice }) {
   if (f.status === "paid") {
@@ -102,7 +111,9 @@ export function Cobranca() {
 
   const gerar = () =>
     acao("gerar", async () => {
-      const { created } = generateInvoicesResultSchema.parse(await pedir("/admin/billing/generate", corpo("POST", { month: mes })));
+      const { created } = generateInvoicesResultSchema.parse(
+        await pedir("/admin/billing/generate", corpo("POST", { month: mes })),
+      );
       setRecado(
         created === 0
           ? `Nenhuma fatura nova: todos com plano já têm a fatura de ${nomeMes(mes)}.`
@@ -118,17 +129,33 @@ export function Cobranca() {
         <div>
           <h1>Cobrança</h1>
           <div className="cobranca-mes">
-            <button type="button" className="link-btn" onClick={() => setMes((m) => somarMes(m, -1))} aria-label="Mês anterior">
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setMes((m) => somarMes(m, -1))}
+              aria-label="Mês anterior"
+            >
               ‹
             </button>
             <strong>{nomeMes(mes)}</strong>
-            <button type="button" className="link-btn" onClick={() => setMes((m) => somarMes(m, 1))} aria-label="Próximo mês">
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setMes((m) => somarMes(m, 1))}
+              aria-label="Próximo mês"
+            >
               ›
             </button>
           </div>
         </div>
         <div className="direita">
-          <Botao icone="cobranca" carregando={ocupado === "gerar"} textoCarregando="Gerando..." onClick={() => void gerar()} disabled={!dados}>
+          <Botao
+            icone="cobranca"
+            carregando={ocupado === "gerar"}
+            textoCarregando="Gerando..."
+            onClick={() => void gerar()}
+            disabled={!dados}
+          >
             Gerar faturas de {nomeMes(mes).split(" ")[0]}
             {semFatura > 0 && ` (${semFatura})`}
           </Botao>
@@ -172,13 +199,20 @@ export function Cobranca() {
                         ? `${r.subscription.plan} · ${formatMoney(r.subscription.priceCents)} · vence dia ${r.subscription.dueDay}`
                         : "Sem plano definido"}
                     </span>
+                    {r.subscription?.addons.map((a) => (
+                      <span key={a.addonId} className="suave">
+                        + {a.name}
+                        {a.quantity > 1 && ` × ${a.quantity}`} · {formatMoney(a.quantity * a.unitPriceCents)}
+                      </span>
+                    ))}
                     {r.company.status === "blocked" && <span className="admin-motivo">Restaurante bloqueado</span>}
                   </div>
                   <div className="admin-uso">
                     {f ? (
                       <>
                         <span>
-                          <strong className="num">{formatMoney(f.amountCents)}</strong> em {nomeMes(f.reference.slice(0, 7)).split(" ")[0]}
+                          <strong className="num">{formatMoney(f.amountCents)}</strong> em{" "}
+                          {nomeMes(f.reference.slice(0, 7)).split(" ")[0]}
                         </span>
                         <Situacao f={f} />
                       </>
@@ -187,8 +221,8 @@ export function Cobranca() {
                     )}
                     {r.overdue.count > 0 && (
                       <span className="admin-motivo">
-                        {formatMoney(r.overdue.totalCents)} em atraso ({r.overdue.count} {r.overdue.count === 1 ? "fatura" : "faturas"}, a mais
-                        antiga há {r.overdue.maxDaysLate} dias)
+                        {formatMoney(r.overdue.totalCents)} em atraso ({r.overdue.count}{" "}
+                        {r.overdue.count === 1 ? "fatura" : "faturas"}, a mais antiga há {r.overdue.maxDaysLate} dias)
                       </span>
                     )}
                   </div>
@@ -204,7 +238,11 @@ export function Cobranca() {
                           carregando={ocupado === `cancelar-${f.id}`}
                           textoCarregando="Cancelando..."
                           onClick={() =>
-                            void acao(`cancelar-${f.id}`, () => pedir(`/admin/invoices/${f.id}/cancel`, { method: "POST" }), "Fatura cancelada.")
+                            void acao(
+                              `cancelar-${f.id}`,
+                              () => pedir(`/admin/invoices/${f.id}/cancel`, { method: "POST" }),
+                              "Fatura cancelada.",
+                            )
                           }
                         >
                           Cancelar
@@ -218,7 +256,11 @@ export function Cobranca() {
                         carregando={ocupado === `desfazer-${f.id}`}
                         textoCarregando="Desfazendo..."
                         onClick={() =>
-                          void acao(`desfazer-${f.id}`, () => pedir(`/admin/invoices/${f.id}/reopen`, { method: "POST" }), "Fatura voltou a pendente.")
+                          void acao(
+                            `desfazer-${f.id}`,
+                            () => pedir(`/admin/invoices/${f.id}/reopen`, { method: "POST" }),
+                            "Fatura voltou a pendente.",
+                          )
                         }
                       >
                         {f.status === "paid" ? "Desfazer pagamento" : "Desfazer cancelamento"}
@@ -233,7 +275,8 @@ export function Cobranca() {
             })}
           </ul>
           <p className="suave cobranca-nota">
-            Nada é bloqueado sozinho. Para bloquear quem está em atraso, use Restaurantes. Desbloquear volta tudo como estava.
+            Nada é bloqueado sozinho. Para bloquear quem está em atraso, use Restaurantes. Desbloquear volta tudo como
+            estava.
           </p>
         </>
       )}
@@ -271,11 +314,19 @@ function EditarPlano({ linha, aoFechar, aoSalvar }: { linha: BillingRow; aoFecha
   const [planoId, setPlanoId] = useState<string | null>(s?.planId ?? null);
   const [valor, setValor] = useState(s ? reais(s.priceCents) : "");
   const [dia, setDia] = useState(String(s?.dueDay ?? 10));
+  const [adicionais, setAdicionais] = useState<AdminPlanAddon[] | null>(null);
+  // Quantidade de pacotes de cada adicional (0 = sem o pacote).
+  const [pacotes, setPacotes] = useState<Record<string, number>>(() =>
+    Object.fromEntries((s?.addons ?? []).map((a) => [a.addonId, a.quantity])),
+  );
   const [erros, setErros] = useState<{ planId?: string; priceCents?: string; dueDay?: string }>({});
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
+    pedir("/admin/addons")
+      .then((r) => setAdicionais(adminPlanAddonSchema.array().parse(r)))
+      .catch(() => setAdicionais([]));
     pedir("/admin/plans")
       .then((r) => setPlanos(adminPlanSchema.array().parse(r)))
       .catch((falha: unknown) => setErro(mensagem(falha, "Não foi possível carregar os planos.")));
@@ -305,7 +356,13 @@ function EditarPlano({ linha, aoFechar, aoSalvar }: { linha: BillingRow; aoFecha
     setEnviando(true);
     setErro(null);
     try {
-      await pedir(`/admin/companies/${linha.company.id}/subscription`, corpo("PUT", { planId: planoId, priceCents, dueDay }));
+      const addons = Object.entries(pacotes)
+        .filter(([, q]) => q > 0)
+        .map(([addonId, quantity]) => ({ addonId, quantity }));
+      await pedir(
+        `/admin/companies/${linha.company.id}/subscription`,
+        corpo("PUT", { planId: planoId, priceCents, dueDay, addons }),
+      );
       aoSalvar();
     } catch (falha) {
       setErro(mensagem(falha, "Não foi possível salvar."));
@@ -314,7 +371,7 @@ function EditarPlano({ linha, aoFechar, aoSalvar }: { linha: BillingRow; aoFecha
   }
 
   return (
-    <Dialogo aberto aoFechar={aoFechar} titulo={`Plano: ${linha.company.name}`}>
+    <Dialogo aberto largo aoFechar={aoFechar} titulo={`Plano: ${linha.company.name}`}>
       <form onSubmit={salvar} noValidate className="admin-form">
         {erro && <Aviso>{erro}</Aviso>}
         {s && !s.planId && (
@@ -360,7 +417,60 @@ function EditarPlano({ linha, aoFechar, aoSalvar }: { linha: BillingRow; aoFecha
           erro={erros.dueDay}
           ajuda="De 1 a 28, para existir em todo mês."
         />
-        <p className="suave">Vale para as próximas faturas. As já geradas continuam com o valor delas.</p>
+        {adicionais && adicionais.some((a) => a.active || pacotes[a.id]) && (
+          <fieldset className="pagamento">
+            <legend>Produtos à parte</legend>
+            <ul className="cobranca-pacotes">
+              {adicionais
+                .filter((a) => a.active || pacotes[a.id])
+                .map((a) => {
+                  const q = pacotes[a.id] ?? 0;
+                  const combinado = s?.addons.find((x) => x.addonId === a.id)?.unitPriceCents;
+                  const unit = combinado ?? a.priceCents;
+                  return (
+                    <li key={a.id}>
+                      <span>
+                        <strong>{a.name}</strong>
+                        <span className="suave">
+                          {" "}
+                          {/* O nome já costuma dizer o que o pacote faz ("+10 mesas"); senão, mostra. */}
+                          {a.name.toLowerCase() === textoPacote(a.resource, a.amount).toLowerCase() ? "" : `${textoPacote(a.resource, a.amount)} · `}
+                          {formatMoney(unit)} por pacote
+                        </span>
+                      </span>
+                      <span className="cobranca-qtd">
+                        <Botao
+                          variante="claro"
+                          pequeno
+                          disabled={q === 0}
+                          onClick={() => setPacotes((p) => ({ ...p, [a.id]: q - 1 }))}
+                          aria-label={`Menos ${a.name}`}
+                        >
+                          −
+                        </Botao>
+                        <strong className="num" aria-live="polite">
+                          {q}
+                        </strong>
+                        <Botao
+                          variante="claro"
+                          pequeno
+                          disabled={q >= 99}
+                          onClick={() => setPacotes((p) => ({ ...p, [a.id]: q + 1 }))}
+                          aria-label={`Mais ${a.name}`}
+                        >
+                          +
+                        </Botao>
+                      </span>
+                    </li>
+                  );
+                })}
+            </ul>
+          </fieldset>
+        )}
+        <p className="suave">
+          Vale para as próximas faturas. As já geradas continuam com o valor delas; se a fatura deste mês já foi gerada,
+          um pacote novo só entra no mês seguinte (ou cancele a fatura e gere de novo).
+        </p>
         <div className="dialogo-acoes">
           <Botao variante="claro" onClick={aoFechar}>
             Voltar
@@ -412,8 +522,19 @@ function MarcarPaga({
     <Dialogo aberto aoFechar={aoFechar} titulo={`Pagamento: ${linha.company.name}`}>
       <form onSubmit={salvar} noValidate className="admin-form">
         <p>
-          {fatura.plan}, {nomeMes(fatura.reference.slice(0, 7))}: <strong className="num">{formatMoney(fatura.amountCents)}</strong>
+          {fatura.plan}, {nomeMes(fatura.reference.slice(0, 7))}:{" "}
+          <strong className="num">{formatMoney(fatura.amountCents)}</strong>
         </p>
+        {fatura.items.length > 1 && (
+          <dl className="cobranca-detalhe">
+            {fatura.items.map((i) => (
+              <div key={i.description}>
+                <dt>{i.description}</dt>
+                <dd className="num">{formatMoney(i.amountCents)}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
         {erro && <Aviso>{erro}</Aviso>}
         <fieldset className="pagamento">
           <legend>Como foi pago</legend>
@@ -434,7 +555,13 @@ function MarcarPaga({
           </div>
           {erroMetodo && <span className="campo-erro">{erroMetodo}</span>}
         </fieldset>
-        <Campo rotulo="Observação (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="Ex.: comprovante no WhatsApp" />
+        <Campo
+          rotulo="Observação (opcional)"
+          value={nota}
+          onChange={(e) => setNota(e.target.value)}
+          maxLength={200}
+          placeholder="Ex.: comprovante no WhatsApp"
+        />
         <div className="dialogo-acoes">
           <Botao variante="claro" onClick={aoFechar}>
             Voltar

@@ -91,7 +91,7 @@ MesaFlow/
 | `/admin` | visão geral: restaurantes ativos e bloqueados, bruto esperado no mês (soma dos planos dos ativos) e mapa do Brasil por estado, com as cidades ao clicar (d3-geo + malhas do IBGE, trazido do projeto Conferência de Caixa) |
 | `/admin/restaurantes` | cadastro assistido (restaurante + dono + endereço completo com busca do CEP no ViaCEP, código sorteado), editar endereço, bloqueio com motivo, link de senha do dono, uso nos últimos 30 dias |
 | `/admin/restaurantes/:id` | detalhe: plano, faturas, equipe, uso |
-| `/admin/planos` | catálogo de planos (nome, valor, descrição, itens, destaque, mostrar no site, ordem). A página inicial lê daqui (`GET /plans`). Itens são só texto, não bloqueiam recurso. Ao mudar o valor de um plano com clientes, a tela pergunta se vale só para novos ou para todos (faturas já geradas nunca mudam) |
+| `/admin/planos` | catálogo de planos (nome, valor, descrição, itens, destaque, mostrar no site, ordem). A página inicial lê daqui (`GET /plans`). Cada plano tem limites (até a mesa N, pessoas na equipe contando o dono, produtos contando os inativos; vazio = sem limite) e liga/desliga mesas e comandas, estoque e cardápio online, conferidos no servidor (`PlanLimitsService`). Produtos à parte (pacotes, ex.: +10 mesas por R$ 30) somam ao limite e entram na fatura. Sem plano = sem limite. Os itens de texto continuam só texto Ao mudar o valor de um plano com clientes, a tela pergunta se vale só para novos ou para todos (faturas já geradas nunca mudam) |
 | `/admin/cobranca` | plano de cada restaurante, gerar faturas do mês, marcar paga, cancelar, desfazer, atrasados |
 
 ## 4. Módulos do backend

@@ -4,6 +4,7 @@ import { ApiErro } from "@/lib/http";
 import { sessao } from "@/lib/sessao";
 import { Aviso, Botao, Campo, Comanda } from "@/ui/componentes";
 import { errosPorCampo, type ErrosCampos } from "../acesso/erros";
+import { SeuPlano } from "./SeuPlano";
 import "./ajustes.css";
 
 type CampoAjuste = "name" | "legalName" | "document" | "whatsapp" | "serviceFeeBps";
@@ -154,6 +155,8 @@ export function Ajustes() {
               erro={erros.document}
             />
           </Comanda>
+
+          <SeuPlano />
 
           <Comanda como="section" aria-label="Taxa de serviço">
             <h2>Taxa de serviço</h2>
